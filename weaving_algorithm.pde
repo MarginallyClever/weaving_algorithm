@@ -8,7 +8,9 @@ double [] px = new double[numberOfPoints];
 double [] py = new double[numberOfPoints];
 PImage img;
 int totalLinesDrawn=0;
-
+int totalLinesToDraw=3000;
+int stringAlpha = 45;
+int currentPoint=0;
 
 void setup() {
   img = loadImage("2016-05-08 greek woman.JPG");
@@ -32,7 +34,7 @@ void setup() {
 
 
 void draw() {
-  if(totalLinesDrawn>2000) return;
+  if(totalLinesDrawn>totalLinesToDraw) return;
   int i;
   // go around the circle, calculating intensities
   for(i=0;i<numberOfLinesToDrawPerFrame;++i) {
@@ -49,8 +51,10 @@ void drawLine() {
   double maxValue = 1000000;
   int maxA = 0;
   int maxB = 0;
-  for(i=0;i<numberOfPoints;++i) {
-    for(j=1;j<numberOfPoints;++j) {
+  //for(i=0;i<numberOfPoints;++i)
+  i=currentPoint;
+  {
+    for(j=10;j<numberOfPoints-10;++j) {
       int nextPoint = ( i + j ) % numberOfPoints;
       if(nextPoint==i) continue;
       double dx = px[nextPoint] - px[i];
@@ -77,7 +81,7 @@ void drawLine() {
   //println("line "+maxA+ " to "+maxB);
   // maxIndex is the darkest line on the image.
   // subtract the darkest line from the source image.
-  int currentPoint = maxA;
+  currentPoint = maxA;
   int nextPoint = maxB;
   double dx = px[nextPoint] - px[currentPoint];
   double dy = py[nextPoint] - py[currentPoint];
@@ -88,11 +92,15 @@ void drawLine() {
     double fy = py[currentPoint] + dy * s;
     color c = img.get((int)fx, (int)fy);
     float r = red(c);
-    if(r<127) r += 127; else r = 255;
+    if(r<255-stringAlpha) {
+      r += stringAlpha; 
+    } else {
+      r = 255;
+    }
     img.set((int)fx, (int)fy,color(r));
   }
   // draw darkest lines on screen.
-  stroke(0,0,0,127);
+  stroke(0,0,0,stringAlpha);
   line((float)px[currentPoint],(float)py[currentPoint],(float)px[nextPoint],(float)py[nextPoint]);
   // move to the end of the line.
   currentPoint = nextPoint;
