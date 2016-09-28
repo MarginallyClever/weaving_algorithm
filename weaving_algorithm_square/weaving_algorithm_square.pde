@@ -4,7 +4,7 @@
 // based on work by Petros Vrellis (http://artof01.com/vrellis/works/knit.html)
 //------------------------------------------------------
 
-// points around the circle
+// points around the shape
 int numberOfPoints = 200;
 // self-documenting
 int numberOfLinesToDrawPerFrame = 1;
