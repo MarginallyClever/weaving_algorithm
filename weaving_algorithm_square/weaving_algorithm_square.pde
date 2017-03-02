@@ -137,6 +137,8 @@ void drawLine() {
   // starting from the last line added
   i=currentPoint;
 
+  println(totalLinesDrawn+" : "+currentPoint);
+  
   // uncomment this line to choose from all possible lines.  much slower.
   //for(i=0;i<numberOfPoints;++i)
   {
