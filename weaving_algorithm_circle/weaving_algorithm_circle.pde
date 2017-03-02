@@ -62,8 +62,8 @@ void setup() {
   int i;
   for(i=0;i<numberOfPoints;++i) {
     double d = Math.PI * 2.0 * (double)i/(double)numberOfPoints;
-    px[i] = img.width/2 + Math.sin(d) * maxr;
-    py[i] = img.height/2 + Math.cos(d) * maxr;
+    px[i] = img.width/2 + Math.cos(d) * maxr;
+    py[i] = img.height/2 + Math.sin(d) * maxr;
   }
   
   // a lookup table because sqrt is slow.
@@ -123,6 +123,8 @@ void drawLine() {
   // starting from the last line added
   i=currentPoint;
 
+  println(totalLinesDrawn+" : "+currentPoint);
+  
   // uncomment this line to choose from all possible lines.  much slower.
   //for(i=0;i<numberOfPoints;++i)
   {
