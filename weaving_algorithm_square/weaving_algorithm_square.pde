@@ -35,7 +35,7 @@ PImage img;
 
 int totalLinesDrawn=0;
 int currentPoint=0;
-
+int previewPoint=0;
 
 
 //------------------------------------------------------
@@ -70,14 +70,18 @@ void setup() {
   int i;
   for(i=0;i<qp;++i) {
     double d = (double)i/(double)qp * maxr*2;
-    px[i] = img.width/2-maxr + d;
-    py[i] = img.height/2-maxr;
-    px[qp+i] = px[i];
-    py[qp+i] = img.height/2+maxr;
-    px[qp*2+i] = img.width/2-maxr;
-    py[qp*2+i] = img.height/2-maxr+d;
-    px[qp*3+i] = img.width/2+maxr;
-    py[qp*3+i] = py[qp*2+i];
+    // clockwise from top left
+    px[     i] = img.width /2-maxr + d;
+    py[     i] = img.height/2-maxr;
+
+    px[qp  +i] = img.width /2+maxr;
+    py[qp  +i] = img.height/2-maxr + d;
+
+    px[qp*2+i] = img.width /2+maxr - d;
+    py[qp*2+i] = img.height/2+maxr;
+
+    px[qp*3+i] = img.width /2-maxr;
+    py[qp*3+i] = img.height/2+maxr - d;
   }
   
   // a lookup table because sqrt is slow.
@@ -97,6 +101,34 @@ void mouseReleased() {
 
 //------------------------------------------------------
 void draw() {
+  if( previewPoint < numberOfPoints ) {
+    previewPointOrder();
+  } else {
+    updateLines();
+  }
+}
+
+
+//------------------------------------------------------
+// display the points in order before starting the process.
+void previewPointOrder() {
+  double x = px[previewPoint];
+  double y = py[previewPoint];
+  
+  //clear();
+  stroke(green);
+  strokeWeight(10);
+  point((float)x,(float)y);
+  strokeWeight(1);
+  
+  delay(20);
+  
+  previewPoint++;
+}
+
+
+//------------------------------------------------------
+void updateLines() {
   // if we aren't done
   if(totalLinesDrawn<totalLinesToDraw) {
     if(!paused) {
