@@ -9,13 +9,16 @@ int numberOfPoints = 200;
 // self-documenting
 int numberOfLinesToDrawPerFrame = 1;
 // self-documenting
-int totalLinesToDraw=5000;
+int totalLinesToDraw=3000;
 // how dark is the string being added.  1...255 smaller is lighter.
-int stringAlpha = 45;
+int stringAlpha = 65;
+float stringThickness=1.5;
 // ignore N nearest neighbors to this starting point
 int skipNeighbors=10;
 // set true to start paused.  click the mouse in the screen to pause/unpause.
 boolean paused=true;
+// make this true to add one line per mouse click.
+boolean singleStep=false;
 
 //------------------------------------------------------
 // convenience
@@ -138,6 +141,7 @@ void updateLines() {
         drawLine();
         totalLinesDrawn++;
       }
+      if(singleStep) paused=true;
     }
     image(img,width/2,0);
   }
@@ -221,6 +225,7 @@ void drawLine() {
   }
   
   // draw darkest lines on screen.
+  strokeWeight(stringThickness);
   stroke(0,0,0,stringAlpha);
   line((float)px[currentPoint],(float)py[currentPoint],(float)px[nextPoint],(float)py[nextPoint]);
   

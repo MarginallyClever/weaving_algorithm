@@ -16,6 +16,8 @@ int stringAlpha = 45;
 int skipNeighbors=10;
 // set true to start paused.  click the mouse in the screen to pause/unpause.
 boolean paused=true;
+// make this true to add one line per mouse click.
+boolean singleStep=false;
 
 //------------------------------------------------------
 // convenience
@@ -92,6 +94,7 @@ void draw() {
         drawLine();
         totalLinesDrawn++;
       }
+      if(singleStep) paused=true;
     }
     image(img,width/2,0);
   }
