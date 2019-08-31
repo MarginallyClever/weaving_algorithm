@@ -19,7 +19,7 @@ boolean paused=true;
 // make this true to add one line per mouse click.
 boolean singleStep=false;
 
-float CUTOFF=0;
+float CUTOFF=15;
 
 //------------------------------------------------------
 // convenience
@@ -60,31 +60,17 @@ int totalLinesDrawn=0;
  */
 void setup() {
   // the name of the image to load
-  img = loadImage("phillipineEagle.jpg");
+  img = loadImage("C:/Users/Admin/Documents/GitHub/weaving_algorithm/weaving_algorithm_circle_color/shortHair.jpg");
   // the size of the screen is img.width*2, img.height 
-  size(1176, 730);
+  size(1912, 956);
   dest = createGraphics(img.width, img.height);
 
-  // find average color of image
-  float r=0,g=0,b=0;
-  int size=img.width*img.height;
-  int i;
-  for(i=0;i<size;++i) {
-    color c=img.pixels[i];
-    r+=red(c);
-    g+=green(c);
-    b+=blue(c);
-  }
-  dest.beginDraw();
-  dest.background(r/(float)size,g/(float)size,b/(float)size);
-  dest.endDraw();
-  
-  // smash the image to grayscale
-  //img.filter(GRAY);
+  setAverageColorBackground();
+  //setWhiteBackground();
 
   // find the size of the circle and calculate the points around the edge.
   float maxr = ( img.width > img.height ) ? img.height/2 : img.width/2;
-
+  int i;
   for (i=0; i<numberOfPoints; ++i) {
     float d = PI * 2.0 * i/(float)numberOfPoints;
     px[i] = img.width/2 + cos(d) * maxr;
@@ -98,13 +84,39 @@ void setup() {
     lengths[i] = sqrt(dx*dx+dy*dy);
   }
   
-  lines.add(addLine(color(255,255,255),"white"));
+  //lines.add(addLine(color(255,255,255),"white"));
   lines.add(addLine(color(  0,  0,  0),"black"));
-  //lines.add(addLine(color(255,  0,  0),"red"));
+  lines.add(addLine(color(255,  0,  0),"red"));
   lines.add(addLine(color(  0,255,  0),"green"));
   lines.add(addLine(color(  0,  0,255),"blue"));
-  lines.add(addLine(color(128,  0,  0),"maroon"));
   lines.add(addLine(color(255,255,  0),"yellow"));
+}
+
+
+void setAverageColorBackground() {
+  // find average color of image
+  float r=0,g=0,b=0;
+  int size=img.width*img.height;
+  int i;
+  for(i=0;i<size;++i) {
+    color c=img.pixels[i];
+    r+=red(c);
+    g+=green(c);
+    b+=blue(c);
+  }
+  dest.beginDraw();
+  dest.background(
+    255-r/(float)size,
+    255-g/(float)size,
+    255-b/(float)size);
+  dest.endDraw();
+}
+
+
+void setWhiteBackground() {
+  dest.beginDraw();
+  dest.background(255,255,255);
+  dest.endDraw();
 }
 
 
@@ -234,15 +246,20 @@ float scoreLine(int i,int nextPoint,WeavingThread wt) {
 
     dc = scoreColors(dest.get((int)fx, (int)fy),wt.c);
     ic = scoreColors(img.get((int)fx, (int)fy),wt.c);
+
     diff1 = ic-dc;
     change=abs(diff0-ic);
-    intensity += diff1 - change;
+    intensity += diff1 + change - dtm(fx,fy);  // adjust for high-contrast areas
     diff0=ic;
-    //intensity += abs(diff0-diff1);
-    //diff0=diff1;
 
   }
   return intensity/len;
+}
+
+float dtm(float fx,float fy) {
+  float dx=fx - img.width/2;
+  float dy=fy - img.height/2;
+  return (1.0- (sqrt(dx*dx +dy*dy)/(img.width/2)))*5;
 }
 
 float scoreColors(color a,color b) {

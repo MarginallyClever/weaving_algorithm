@@ -60,8 +60,8 @@ int totalLinesDrawn=0;
  */
 void setup() {
   // the name of the image to load
-  img = loadImage("2016-05-08 greek woman.JPG");
-  size(1336, 1000);
+  img = loadImage("cropped.jpg");
+  size(1336, 668);
   dest = createGraphics(img.width, img.height);
 
   // find average color of image
@@ -99,11 +99,8 @@ void setup() {
   
   lines.add(addLine(color(255,255,255),"white"));
   lines.add(addLine(color(  0,  0,  0),"black"));
-  //lines.add(addLine(color(255,  0,  0),"red"));
-  //lines.add(addLine(color(  0,255,  0),"green"));
-  //lines.add(addLine(color(  0,  0,255),"blue"));
-  //lines[.add(addLine(color(128,  0,  0),"maroon"));
-  lines.add(addLine(color(255,255,  0),"yellow"));
+  lines.add(addLine(color(127,127,255),"blue"));
+  lines.add(addLine(color(230, 211, 133),"yellow"));
 }
 
 
@@ -222,7 +219,7 @@ float scoreLine(int i,int nextPoint,WeavingThread wt) {
   float len = lengths[(int)abs(nextPoint-i)];//Math.floor( Math.sqrt(dx*dx+dy*dy) );
 
   float diff0=scoreColors(img.get((int)px[i], (int)py[i]),wt.c);
-  float s,fx,fy,dc,ic,diff1;
+  float s,fx,fy,dc,ic,diff1,change;
   
   // measure how dark is the image under this line.
   float intensity = 0;
@@ -234,10 +231,9 @@ float scoreLine(int i,int nextPoint,WeavingThread wt) {
     dc = scoreColors(dest.get((int)fx, (int)fy),wt.c);
     ic = scoreColors(img.get((int)fx, (int)fy),wt.c);
     diff1 = ic-dc;
-    intensity += diff1 - abs(diff0-ic);  // adds punishment for high-contrast areas
+    change=abs(diff0-ic);
+    intensity += diff1 + change;  // adjust for high-contrast areas
     diff0=ic;
-    //intensity += abs(diff0-diff1);
-    //diff0=diff1;
 
   }
   return intensity/len;
