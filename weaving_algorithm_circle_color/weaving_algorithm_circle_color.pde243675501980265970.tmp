@@ -19,7 +19,7 @@ boolean paused=true;
 // make this true to add one line per mouse click.
 boolean singleStep=false;
 
-float CUTOFF=0;
+float CUTOFF=-15;
 
 //------------------------------------------------------
 // convenience
@@ -46,7 +46,7 @@ class WeavingThread {
   char [] done;
 }
 
-ArrayList<WeavingThread> lines = new ArrayList<WeavingThread>();
+WeavingThread [] lines;
 
 int totalLinesDrawn=0;
 
@@ -60,8 +60,9 @@ int totalLinesDrawn=0;
  */
 void setup() {
   // the name of the image to load
-  img = loadImage("2016-05-08 greek woman.JPG");
-  size(1336, 1000);
+  img = loadImage("phillipineEagle.jpg");
+  // the size of the screen is img.width*2, img.height 
+  size(1176, 730);
   dest = createGraphics(img.width, img.height);
 
   // find average color of image
@@ -97,13 +98,15 @@ void setup() {
     lengths[i] = sqrt(dx*dx+dy*dy);
   }
   
-  lines.add(addLine(color(255,255,255),"white"));
-  lines.add(addLine(color(  0,  0,  0),"black"));
-  //lines.add(addLine(color(255,  0,  0),"red"));
-  //lines.add(addLine(color(  0,255,  0),"green"));
-  //lines.add(addLine(color(  0,  0,255),"blue"));
-  //lines[.add(addLine(color(128,  0,  0),"maroon"));
-  lines.add(addLine(color(255,255,  0),"yellow"));
+  lines = new WeavingThread[6];
+  i=0;
+  lines[i++] = addLine(color(255,255,255),"white");
+  lines[i++] = addLine(color(  0,  0,  0),"black");
+  //lines[i++] = addLine(color(255,  0,  0),"red");
+  lines[i++] = addLine(color(  0,255,  0),"green");
+  lines[i++] = addLine(color(  0,  0,255),"blue");
+  lines[i++] = addLine(color(128,  0,  0),"maroon");
+  lines[i++] = addLine(color(255,255,  0),"yellow");
 }
 
 
@@ -144,8 +147,8 @@ void draw() {
       // draw a few at a time so it looks interactive.
       int i;
       for (i=0; i<numberOfLinesToDrawPerFrame; ++i) {
-        for(int j=0;j<lines.size();++j) {
-          drawLine(lines.get(j));
+        for(int j=0;j<lines.length;++j) {
+          drawLine(lines[j]);
         }
       }
       if (singleStep) paused=true;
@@ -188,11 +191,8 @@ void drawLine(WeavingThread wt) {
     int i1 = i+numberOfPoints-skipNeighbors;
     for (j=i0; j<i1; ++j) {
       int nextPoint = j % numberOfPoints;
-      if(wt.done[i*numberOfPoints+nextPoint]>0) {
-        wt.done[i*numberOfPoints+nextPoint]--;
-        wt.done[nextPoint*numberOfPoints+i]--;
-        continue;
-      }
+      if(wt.done[i*numberOfPoints+nextPoint]==1) continue;
+      if(wt.done[nextPoint*numberOfPoints+i]==1) continue;
       float intensity = scoreLine(i,nextPoint,wt);
       double currentIntensity = intensity;
       if ( maxValue > currentIntensity ) {
@@ -208,8 +208,8 @@ void drawLine(WeavingThread wt) {
   println(totalLinesDrawn+" : "+wt.name+"\t"+maxA+"\t"+maxB+"\t"+maxValue);
   
   drawToDest(maxA, maxB, wt.c);
-  wt.done[maxA*numberOfPoints+maxB]=20;
-  wt.done[maxB*numberOfPoints+maxA]=20;
+  wt.done[maxA*numberOfPoints+maxB]=1;
+  wt.done[maxB*numberOfPoints+maxA]=1;
   totalLinesDrawn++;
   
   // move to the end of the line.
