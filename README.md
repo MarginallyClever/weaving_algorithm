@@ -1,4 +1,4 @@
-##### Weaving Algorithm #####
+# Weaving Algorithm #
 
 http://www.marginallyclever.com/
 
