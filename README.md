@@ -18,8 +18,7 @@ one line per click, and so on.
 
 ## Get help ##
 
-Please visit the forums
-https://marginallyclever.com/forums
+Please visit the Discord channel: https://discord.gg/rkbZ788hUw
 
 ## Misc ##
 
