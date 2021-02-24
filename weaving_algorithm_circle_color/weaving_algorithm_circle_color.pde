@@ -5,11 +5,11 @@
 //------------------------------------------------------
 
 // points around the circle
-int numberOfPoints = 188;
+int numberOfPoints = 188*2;
 // self-documenting
 int numberOfLinesToDrawPerFrame = 1;
 // self-documenting
-int totalLinesToDraw=30000;
+int totalLinesToDraw=8000;
 // how dark is the string being added.  1...255 smaller is lighter.
 int stringAlpha = 45;
 // ignore N nearest neighbors to this starting point
@@ -60,7 +60,7 @@ int totalLinesDrawn=0;
  */
 void setup() {
   // the name of the image to load
-  img = loadImage("C:/Users/Admin/Documents/GitHub/weaving_algorithm/weaving_algorithm_circle_color/shortHair.jpg");
+  img = loadImage("shortHair.jpg");
   // the size of the screen is img.width*2, img.height 
   size(1912, 956);
   dest = createGraphics(img.width, img.height);
