@@ -16,10 +16,16 @@ Final sequence of strings is printed to the output window at the bottom of the p
 Read the comments at the top of the code to find tweakable values like total number of points,
 one line per click, and so on.
 
+## TO RUN ##
+
+- Have Processing 3 installed.
+- Open the sketch in Processing.
+- run the sketch.
+- Click with the mouse on the screen to pause/unpause.  (this way you can pause,copy/paste the - output from the log window, and continue)
+
 ## Get help ##
 
-Please visit the forums
-https://marginallyclever.com/forums
+Please join us on Discord: https://discord.gg/rkbZ788hUw
 
 ## Misc ##
 
