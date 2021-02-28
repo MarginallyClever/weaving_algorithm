@@ -9,29 +9,25 @@ String sourceImage = "david1300.jpg";
 // points around the circle
 int numberOfPoints = 188*2;
 // self-documenting
-int numberOfLinesToDrawPerFrame = 1;
+int numberOfLinesToDrawPerFrame = 50;
 // self-documenting
-int totalLinesToDraw=8000;//numberOfPoints*numberOfPoints/2;
-// how dark is the string being added.  1...255 smaller is lighter.
-int stringAlpha = 64;
+int totalLinesToDraw=5000;//numberOfPoints*numberOfPoints/2;
 
-float lineWeight = 1.0; /// default 1
+float lineWeight = 0.50; /// default 1
 
 // ignore N nearest neighbors to this starting point
-int skipNeighbors=10;
+int skipNeighbors=50;
 // set true to start paused.  click the mouse in the screen to pause/unpause.
 boolean paused=true;
 // make this true to add one line per mouse click.
 boolean singleStep=false;
 
-float CUTOFF=0;
-
 //------------------------------------------------------
-// convenience
-color white = color(255, 255, 255);
-color black = color(0, 0, 0);
-color blue = color(0, 0, 255);
-color green = color(0, 255, 0);
+// convenience colors.  RGBA. Alpha is how dark is the string being added.  1...255 smaller is lighter.
+color white = color(255, 255, 255,64);
+color black = color(0, 0, 0,48);
+color blue = color(0, 0, 255,48);
+color green = color(0, 255, 0,48);
 
 
 //------------------------------------------------------
@@ -81,20 +77,21 @@ int totalLinesDrawn=0;
 float scaleW,scaleH;
 
 
-//------------------------------------------------------
-/**
- * To modify this example for another image, you will have to MANUALLY
- * tweak the size() values to match the img.width and img.height.
- * Don't like it?  Tell the Processing team. 
- */
+// run once on start.
 void setup() {
-  // the name of the image to load
+  // make the window.  must be (h*2,h+20)
+  size(1600,820);
+
+  // load the image
   //img = loadImage("cropped.jpg");
   //img = loadImage("unnamed.jpg");
-  img = loadImage(sourceImage);  
+  img = loadImage(sourceImage);
   
-  size(1000,520);
-  
+  // crop image to square
+  img = img.get(0,0,img.height, img.height);
+  // resize to fill window
+  img.resize(width/2,width/2);
+
   dest = createGraphics(img.width, img.height);
 
   setBackgroundColor();
@@ -210,7 +207,9 @@ void draw() {
     image(img, width/2, 0,width/2,height);
     image(dest, 0, 0, width/2, height);
   } else {
-    java.util.Collections.reverse(finishedLines);
+    // finished!
+    //java.util.Collections.reverse(finishedLines);
+    
     /*
     float r=0;
     float g=0;
@@ -227,7 +226,7 @@ void draw() {
     setBackgroundColor();
     dest.beginDraw();
     for(FinishedLine f : finishedLines ) {
-      dest.stroke(f.c, stringAlpha);
+      dest.stroke(f.c);
       dest.line((float)px[f.start], (float)py[f.start], (float)px[f.end], (float)py[f.end]);
     }
     dest.endDraw();
@@ -288,7 +287,7 @@ BestResult findBest(WeavingThread wt) {
  * add that line to the output.
  */
 void drawLine(WeavingThread wt,int maxA,int maxB,double maxValue) {
-  println(totalLinesDrawn+" : "+wt.name+"\t"+maxA+"\t"+maxB+"\t"+maxValue);
+  //println(totalLinesDrawn+" : "+wt.name+"\t"+maxA+"\t"+maxB+"\t"+maxValue);
   
   drawToDest(maxA, maxB, wt.c);
   wt.done[maxA*numberOfPoints+maxB]=20;
@@ -340,7 +339,7 @@ float scoreColors(color a,color b) {
 void drawToDest(int start, int end, color c) {
   // draw darkest lines on screen.
   dest.beginDraw();
-  dest.stroke(c, stringAlpha);
+  dest.stroke(c);
   dest.line((float)px[start], (float)py[start], (float)px[end], (float)py[end]);
   dest.endDraw();
   finishedLines.add(new FinishedLine(start,end,c));
