@@ -16,6 +16,8 @@ Final sequence of strings is printed to the output window at the bottom of the p
 Read the comments at the top of the code to find tweakable values like total number of points,
 one line per click, and so on.
 
+Special thanks for great ideas from https://github.com/ericheisler/AutomatedArt
+
 ## TO RUN ##
 
 - Have Processing 3 installed.
