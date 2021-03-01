@@ -7,13 +7,13 @@
 String sourceImage = "david1300.jpg";
 
 // points around the circle
-int numberOfPoints = 188*2;
+int numberOfPoints = 230;
 // self-documenting
 int numberOfLinesToDrawPerFrame = 50;
 // self-documenting
-int totalLinesToDraw=5000;//numberOfPoints*numberOfPoints/2;
+int totalLinesToDraw=8000;//numberOfPoints*numberOfPoints/2;
 
-float lineWeight = 0.50; /// default 1
+float lineWeight = 5.0;  // default 1
 
 // ignore N nearest neighbors to this starting point
 int skipNeighbors=50;
@@ -24,8 +24,8 @@ boolean singleStep=false;
 
 //------------------------------------------------------
 // convenience colors.  RGBA. Alpha is how dark is the string being added.  1...255 smaller is lighter.
-color white = color(255, 255, 255,64);
-color black = color(0, 0, 0,48);
+color white = color(255, 255, 255,48);
+color black = color(0, 0, 0,32);
 color blue = color(0, 0, 255,48);
 color green = color(0, 255, 0,48);
 
@@ -95,8 +95,6 @@ void setup() {
   dest = createGraphics(img.width, img.height);
 
   setBackgroundColor();
-
-  strokeWeight(lineWeight);  // default
   
   // smash the image to grayscale
   //img.filter(GRAY);
@@ -224,6 +222,7 @@ void draw() {
     }*/
     
     setBackgroundColor();
+    strokeWeight(lineWeight);
     dest.beginDraw();
     for(FinishedLine f : finishedLines ) {
       dest.stroke(f.c);
@@ -242,7 +241,6 @@ void draw() {
   line(10, 5, (width-10), 5);
   stroke(green);
   line(10, 5, (width-10)*percent, 5);
-  strokeWeight(lineWeight);  // default
 }
 
 
@@ -306,7 +304,9 @@ float scoreLine(int i,int nextPoint,WeavingThread wt) {
   float dy = py[nextPoint] - py[i];
   float len = lengths[(int)abs(nextPoint-i)];//Math.floor( Math.sqrt(dx*dx+dy*dy) );
 
-  float diff0=scoreColors(img.get((int)px[i], (int)py[i]),wt.c);
+  color cc = wt.c;
+
+  float diff0=scoreColors(img.get((int)px[i], (int)py[i]),cc);
   float s,fx,fy,dc,ic,diff1,change;
   
   // measure how dark is the image under this line.
@@ -318,11 +318,11 @@ float scoreLine(int i,int nextPoint,WeavingThread wt) {
 
     color original = img.get((int)fx, (int)fy);
     color latest = dest.get((int)fx, (int)fy);
-    dc = scoreColors(latest,wt.c);
-    ic = scoreColors(original,wt.c);
+    dc = scoreColors(latest,cc);
+    ic = scoreColors(original,cc);
     diff1 = ic-dc;
     change=abs(diff0-ic);
-    intensity += diff1 + change;  // adjust for high-contrast areas
+    intensity += diff1 + change;
     diff0=ic;
 
   }
@@ -333,11 +333,12 @@ float scoreColors(color a,color b) {
   float dr = red(a)-red(b);
   float dg = green(a)-green(b);
   float db = blue(a)-blue(b);
-  return sqrt(dr*dr+dg*dg+db*db);
+  return sqrt(dr*dr+dg*dg+db*db)*alpha(b);
 }
 
 void drawToDest(int start, int end, color c) {
   // draw darkest lines on screen.
+  strokeWeight(lineWeight);
   dest.beginDraw();
   dest.stroke(c);
   dest.line((float)px[start], (float)py[start], (float)px[end], (float)py[end]);
