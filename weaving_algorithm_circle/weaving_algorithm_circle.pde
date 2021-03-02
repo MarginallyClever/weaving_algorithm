@@ -84,10 +84,10 @@ void setup() {
   size(1600,820);
 
   ready=false;
-  selectInput("Select an image file","fileSelected");
+  selectInput("Select an image file","inputSelected");
 }
 
-void fileSelected(File selection) {
+void inputSelected(File selection) {
   if(selection == null) {
     exit();
     return;
@@ -99,7 +99,12 @@ void fileSelected(File selection) {
   img = loadImage(selection.getAbsolutePath());
   
   // crop image to square
-  img = img.get(0,0,img.height, img.height);
+  if(img.height<img.width) {
+    img = img.get(0,0,img.height, img.height);
+  } else {
+    img = img.get(0,0,img.width, img.width);
+  }
+  
   // resize to fill window
   img.resize(width/2,width/2);
 
@@ -219,33 +224,8 @@ void draw() {
     image(img, width/2, 0,width/2,height);
     image(dest, 0, 0, width/2, height);
   } else {
-    // finished!
-    //java.util.Collections.reverse(finishedLines);
-    
-    /*
-    float r=0;
-    float g=0;
-    float b=0;
-    int size=img.width*img.height;
-    int i;
-    for(i=0;i<size;++i) {
-      color c=img.pixels[i];
-      r+=red(c);
-      g+=green(c);
-      b+=blue(c);
-    }*/
-    
-    setBackgroundColor();
-    strokeWeight(lineWeight);
-    dest.beginDraw();
-    for(FinishedLine f : finishedLines ) {
-      dest.stroke(f.c);
-      dest.line((float)px[f.start], (float)py[f.start], (float)px[f.end], (float)py[f.end]);
-    }
-    dest.endDraw();
-    image(img, width/2, 0,width/2,height);
-    image(dest, 0, 0, width/2, height);
-    noLoop();
+    // finished!    
+    calculationFinished();
   }
   // progress bar
   float percent = (float)totalLinesDrawn / (float)totalLinesToDraw;
@@ -255,6 +235,27 @@ void draw() {
   line(10, 5, (width-10), 5);
   stroke(green);
   line(10, 5, (width-10)*percent, 5);
+}
+
+void calculationFinished() {
+  noLoop();
+  selectOutput("Select a destination CSV file","outputSelected");
+}
+
+void outputSelected(File output) {
+  if(output==null) {
+    return;
+  }
+  PrintWriter writer = createWriter(output.getAbsolutePath());
+  writer.println("R, G, B, Start, End");
+  for(FinishedLine f : finishedLines ) {
+    writer.println((int)  red(f.c)+", "
+                  +(int)green(f.c)+", "
+                  +(int) blue(f.c)+", "
+                  +f.start+", "
+                  +f.end+", ");
+  }
+  writer.close();
 }
 
 
