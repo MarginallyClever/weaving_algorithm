@@ -16,7 +16,7 @@ int totalLinesToDraw=8000;//numberOfPoints*numberOfPoints/2;
 float lineWeight = 5.0;  // default 1
 
 // ignore N nearest neighbors to this starting point
-int skipNeighbors=50;
+int skipNeighbors=20;
 // set true to start paused.  click the mouse in the screen to pause/unpause.
 boolean paused=true;
 // make this true to add one line per mouse click.
@@ -73,8 +73,9 @@ ArrayList<WeavingThread> lines = new ArrayList<WeavingThread>();
 
 int totalLinesDrawn=0;
 
-
 float scaleW,scaleH;
+
+boolean ready;
 
 
 // run once on start.
@@ -82,10 +83,20 @@ void setup() {
   // make the window.  must be (h*2,h+20)
   size(1600,820);
 
+  ready=false;
+  selectInput("Select an image file","fileSelected");
+}
+
+void fileSelected(File selection) {
+  if(selection == null) {
+    exit();
+    return;
+  }
+  
   // load the image
   //img = loadImage("cropped.jpg");
   //img = loadImage("unnamed.jpg");
-  img = loadImage(sourceImage);
+  img = loadImage(selection.getAbsolutePath());
   
   // crop image to square
   img = img.get(0,0,img.height, img.height);
@@ -120,6 +131,7 @@ void setup() {
   lines.add(addLine(black,"black"));
   //lines.add(addLine(blue,"blue"));
   //lines.add(addLine(color(230, 211, 133),"yellow"));
+  ready=true;
 }
 
 
@@ -179,6 +191,8 @@ void mouseReleased() {
 
 //------------------------------------------------------
 void draw() {
+  if(!ready) return;
+  
   // if we aren't done
   if (totalLinesDrawn<totalLinesToDraw) {
     if (!paused) {
