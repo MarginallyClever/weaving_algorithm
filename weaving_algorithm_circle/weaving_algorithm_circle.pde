@@ -13,7 +13,7 @@ int numberOfLinesToDrawPerFrame = 50;
 // self-documenting
 int totalLinesToDraw=8000;
 // how thick are the threads?
-float lineWeight = 1.6;  // default 1
+float lineWeight = 0.6;  // default 1
 // ignore N nearest neighbors to this starting point
 int skipNeighbors=20;
 // set true to start paused.  click the mouse in the screen to pause/unpause.
@@ -24,10 +24,10 @@ boolean singleStep=false;
 // convenience colors.  RGBA. 
 // Alpha is how dark is the string being added.  1...255 smaller is lighter.
 // Messing with the alpha value seems to make a big difference!
-final color white = color(255, 255, 255,48);
-final color black = color(0, 0, 0,32);
-final color blue = color(0, 0, 255,48);
-final color green = color(0, 255, 0,48);
+final color white = color(255, 255, 255,64);
+final color black = color(0, 0, 0,64);
+final color blue = color(0, 0, 255,192);
+final color green = color(0, 255, 0,192);
 
 
 //------------------------------------------------------
