@@ -11,10 +11,9 @@ int numberOfPoints = 230;
 // self-documenting
 int numberOfLinesToDrawPerFrame = 50;
 // self-documenting
-int totalLinesToDraw=8000;//numberOfPoints*numberOfPoints/2;
-
-float lineWeight = 5.0;  // default 1
-
+int totalLinesToDraw=8000;
+// how thick are the threads?
+float lineWeight = 1.6;  // default 1
 // ignore N nearest neighbors to this starting point
 int skipNeighbors=20;
 // set true to start paused.  click the mouse in the screen to pause/unpause.
@@ -22,12 +21,13 @@ boolean paused=true;
 // make this true to add one line per mouse click.
 boolean singleStep=false;
 
-//------------------------------------------------------
-// convenience colors.  RGBA. Alpha is how dark is the string being added.  1...255 smaller is lighter.
-color white = color(255, 255, 255,48);
-color black = color(0, 0, 0,32);
-color blue = color(0, 0, 255,48);
-color green = color(0, 255, 0,48);
+// convenience colors.  RGBA. 
+// Alpha is how dark is the string being added.  1...255 smaller is lighter.
+// Messing with the alpha value seems to make a big difference!
+final color white = color(255, 255, 255,48);
+final color black = color(0, 0, 0,32);
+final color blue = color(0, 0, 255,48);
+final color green = color(0, 255, 0,48);
 
 
 //------------------------------------------------------
@@ -57,6 +57,7 @@ class BestResult {
   }
 };
 
+
 class FinishedLine {
   public int start,end;
   public color c;
@@ -68,8 +69,9 @@ class FinishedLine {
   }
 };
 
+
 ArrayList<FinishedLine> finishedLines = new ArrayList<FinishedLine>(); 
-ArrayList<WeavingThread> lines = new ArrayList<WeavingThread>();
+ArrayList<WeavingThread> threads = new ArrayList<WeavingThread>();
 
 int totalLinesDrawn=0;
 
@@ -86,6 +88,7 @@ void setup() {
   ready=false;
   selectInput("Select an image file","inputSelected");
 }
+
 
 void inputSelected(File selection) {
   if(selection == null) {
@@ -132,10 +135,10 @@ void inputSelected(File selection) {
     lengths[i] = sqrt(dx*dx+dy*dy);
   }
   
-  lines.add(addLine(white,"white"));
-  lines.add(addLine(black,"black"));
-  //lines.add(addLine(blue,"blue"));
-  //lines.add(addLine(color(230, 211, 133),"yellow"));
+  threads.add(addLine(white,"white"));
+  threads.add(addLine(black,"black"));
+  //threads.add(addLine(blue,"blue"));
+  //threads.add(addLine(color(230, 211, 133),"yellow"));
   ready=true;
 }
 
@@ -165,6 +168,7 @@ void setBackgroundColor() {
   dest.endDraw();
 }
 
+
 WeavingThread addLine(color c,String name) {
   WeavingThread wt = new WeavingThread();
   wt.c=c;
@@ -188,36 +192,34 @@ WeavingThread addLine(color c,String name) {
 }
 
 
-//------------------------------------------------------
 void mouseReleased() {
   paused = paused ? false : true;
 }
 
 
-//------------------------------------------------------
 void draw() {
   if(!ready) return;
   
   // if we aren't done
   if (totalLinesDrawn<totalLinesToDraw) {
     if (!paused) {
-      BestResult[] br = new BestResult[lines.size()];
+      BestResult[] br = new BestResult[threads.size()];
       
       // draw a few at a time so it looks interactive.
       int i;
       for (i=0; i<numberOfLinesToDrawPerFrame; ++i) {
-        for(int j=0;j<lines.size();++j) {
-          br[j]=findBest(lines.get(j));
+        for(int j=0;j<threads.size();++j) {
+          br[j]=findBest(threads.get(j));
         }
         double v = br[0].maxValue;
         int best = 0;
-        for(int j=1;j<lines.size();++j) {
+        for(int j=1;j<threads.size();++j) {
           if( v > br[j].maxValue ) {
             v = br[j].maxValue;
             best = j;
           }
         }
-        drawLine(lines.get(best),br[best].maxA,br[best].maxB,br[best].maxValue);
+        drawLine(threads.get(best),br[best].maxA,br[best].maxB,br[best].maxValue);
       }
       if (singleStep) paused=true;
     }
@@ -237,25 +239,36 @@ void draw() {
   line(10, 5, (width-10)*percent, 5);
 }
 
+
 void calculationFinished() {
   noLoop();
   selectOutput("Select a destination CSV file","outputSelected");
 }
+
 
 void outputSelected(File output) {
   if(output==null) {
     return;
   }
   PrintWriter writer = createWriter(output.getAbsolutePath());
-  writer.println("R, G, B, Start, End");
+  writer.println("Color, Start, End");
   for(FinishedLine f : finishedLines ) {
-    writer.println((int)  red(f.c)+", "
-                  +(int)green(f.c)+", "
-                  +(int) blue(f.c)+", "
+    
+    writer.println(getThreadName(f.c)+", "
                   +f.start+", "
                   +f.end+", ");
   }
   writer.close();
+}
+
+
+String getThreadName(color c) {
+  for( WeavingThread w : threads ) {
+    if(w.c == c) {
+      return w.name;
+    }
+  }
+  return "??";
 }
 
 
@@ -269,7 +282,7 @@ BestResult findBest(WeavingThread wt) {
   // starting from the last line added
   i=wt.currentPoint;
 
-  // uncomment this line to choose from all possible lines.  much slower.
+  // uncomment this line to choose from all possible threads.  much slower.
   //for(i=0;i<numberOfPoints;++i)
   {
     int i0 = i+1+skipNeighbors;
@@ -352,10 +365,10 @@ float scoreColors(color a,color b) {
 }
 
 void drawToDest(int start, int end, color c) {
-  // draw darkest lines on screen.
-  strokeWeight(lineWeight);
+  // draw darkest threads on screen.
   dest.beginDraw();
   dest.stroke(c);
+  dest.strokeWeight(lineWeight);
   dest.line((float)px[start], (float)py[start], (float)px[end], (float)py[end]);
   dest.endDraw();
   finishedLines.add(new FinishedLine(start,end,c));
