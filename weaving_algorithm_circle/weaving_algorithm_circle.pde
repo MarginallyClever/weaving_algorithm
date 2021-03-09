@@ -3,19 +3,18 @@
 // dan@marginallyclever.com 2016-08-05
 // based on work by Petros Vrellis (http://artof01.com/vrellis/works/knit.html)
 //------------------------------------------------------
-
-String sourceImage = "david1300.jpg";
-
 // points around the circle
-int numberOfPoints = 230;
+final int numberOfPoints = 230;
 // self-documenting
-int numberOfLinesToDrawPerFrame = 50;
+final int numberOfLinesToDrawPerFrame = 50;
 // self-documenting
-int totalLinesToDraw=8000;
+final int totalLinesToDraw=8000;
 // how thick are the threads?
-float lineWeight = 0.6;  // default 1
+final float lineWeight = 0.8;  // default 1
+final float stringAlpha = 48; // 0...255 with 0 being totally transparent.
 // ignore N nearest neighbors to this starting point
-int skipNeighbors=20;
+final int skipNeighbors=20;
+
 // set true to start paused.  click the mouse in the screen to pause/unpause.
 boolean paused=true;
 // make this true to add one line per mouse click.
@@ -24,10 +23,11 @@ boolean singleStep=false;
 // convenience colors.  RGBA. 
 // Alpha is how dark is the string being added.  1...255 smaller is lighter.
 // Messing with the alpha value seems to make a big difference!
-final color white = color(255, 255, 255,64);
-final color black = color(0, 0, 0,64);
-final color blue = color(0, 0, 255,192);
-final color green = color(0, 255, 0,192);
+final color white = color(255, 255, 255,stringAlpha);
+final color black = color(0, 0, 0,stringAlpha);
+final color blue = color(0, 0, 255,stringAlpha);
+final color green = color(0, 255, 0,stringAlpha);
+final color red = color(255, 0, 0,stringAlpha);
 
 
 //------------------------------------------------------
@@ -76,7 +76,7 @@ ArrayList<WeavingThread> threads = new ArrayList<WeavingThread>();
 int totalLinesDrawn=0;
 
 float scaleW,scaleH;
-
+float diameter;
 boolean ready;
 
 
@@ -119,13 +119,14 @@ void inputSelected(File selection) {
   //img.filter(GRAY);
 
   // find the size of the circle and calculate the points around the edge.
-  float maxr = ( img.width > img.height ) ? img.height/2 : img.width/2;
+  diameter = ( img.width > img.height ) ? img.height : img.width;
+  float radius = diameter/2;
 
   int i;
   for (i=0; i<numberOfPoints; ++i) {
     float d = PI * 2.0 * i/(float)numberOfPoints;
-    px[i] = img.width/2 + cos(d) * maxr;
-    py[i] = img.height/2 + sin(d) * maxr;
+    px[i] = img.width /2 + cos(d) * radius;
+    py[i] = img.height/2 + sin(d) * radius;
   }
 
   // a lookup table because sqrt is slow.
@@ -206,11 +207,12 @@ void draw() {
       BestResult[] br = new BestResult[threads.size()];
       
       // draw a few at a time so it looks interactive.
-      int i;
-      for (i=0; i<numberOfLinesToDrawPerFrame; ++i) {
+      for(int i=0; i<numberOfLinesToDrawPerFrame; ++i) {
+        // find the best thread for each color
         for(int j=0;j<threads.size();++j) {
           br[j]=findBest(threads.get(j));
         }
+        // of the threads tested, which is best?
         double v = br[0].maxValue;
         int best = 0;
         for(int j=1;j<threads.size();++j) {
@@ -219,7 +221,8 @@ void draw() {
             best = j;
           }
         }
-        drawLine(threads.get(best),br[best].maxA,br[best].maxB,br[best].maxValue);
+        // draw that best line.
+        drawLine(threads.get(best),br[best].maxA,br[best].maxB);
       }
       if (singleStep) paused=true;
     }
@@ -229,27 +232,33 @@ void draw() {
     // finished!    
     calculationFinished();
   }
-  // progress bar
+  
+  drawProgressBar();
+}
+
+void drawProgressBar() {
   float percent = (float)totalLinesDrawn / (float)totalLinesToDraw;
 
   strokeWeight(10);  // thick
-  stroke(blue);
+  stroke(0,0,255,255);
   line(10, 5, (width-10), 5);
-  stroke(green);
+  stroke(0,255,0,255);
   line(10, 5, (width-10)*percent, 5);
 }
 
 
+// stop drawing and ask user where (if) to save CSV.
 void calculationFinished() {
   noLoop();
   selectOutput("Select a destination CSV file","outputSelected");
 }
 
-
+// write the file if requested
 void outputSelected(File output) {
   if(output==null) {
     return;
   }
+  // write the file
   PrintWriter writer = createWriter(output.getAbsolutePath());
   writer.println("Color, Start, End");
   for(FinishedLine f : finishedLines ) {
@@ -272,17 +281,18 @@ String getThreadName(color c) {
 }
 
 
+// a weaving thread starts at wt.currentPoint.  for all other points Pn, look at the line between here and all other points Ln(Pn).  
+// The Ln with the lowest score is the best fit.  zero would be a perfect score.
 BestResult findBest(WeavingThread wt) {
   int i, j;
-  double maxValue = 1000000;
+  double maxValue = Double.MAX_VALUE;
   int maxA = 0;
   int maxB = 0;
-  // find the darkest line in the picture
 
   // starting from the last line added
   i=wt.currentPoint;
 
-  // uncomment this line to choose from all possible threads.  much slower.
+  // uncomment this line to compare all starting points, not just the current starting point.  O(n*n) slower.
   //for(i=0;i<numberOfPoints;++i)
   {
     int i0 = i+1+skipNeighbors;
@@ -290,8 +300,8 @@ BestResult findBest(WeavingThread wt) {
     for (j=i0; j<i1; ++j) {
       int nextPoint = j % numberOfPoints;
       if(wt.done[i*numberOfPoints+nextPoint]>0) {
-        wt.done[i*numberOfPoints+nextPoint]--;
-        wt.done[nextPoint*numberOfPoints+i]--;
+        //wt.done[i*numberOfPoints+nextPoint]--;
+        //wt.done[nextPoint*numberOfPoints+i]--;
         continue;
       }
       double currentIntensity = scoreLine(i,nextPoint,wt);
@@ -307,12 +317,9 @@ BestResult findBest(WeavingThread wt) {
 }
 
 
-/**
- * find the best line on the image between two points
- * subtract that line from the source image
- * add that line to the output.
- */
-void drawLine(WeavingThread wt,int maxA,int maxB,double maxValue) {
+// commit the new line to the destination image (our results so far)
+// also remember the details for later.
+void drawLine(WeavingThread wt,int maxA,int maxB) {
   //println(totalLinesDrawn+" : "+wt.name+"\t"+maxA+"\t"+maxB+"\t"+maxValue);
   
   drawToDest(maxA, maxB, wt.c);
@@ -325,43 +332,52 @@ void drawLine(WeavingThread wt,int maxA,int maxB,double maxValue) {
 }
 
 /**
- * measure the change if thread wt were put here.  that is, the developed image - the original image (dc) vs the new thread - the original image (ic)
+ * Measure the change if thread wt were put here.
+ * There is score A, the result so far: the difference between the original and the latest image.  A perfect match would be zero.  It is never a negative value.
+ * There is score B, the result if latest were changed by the new thread. 
  */
 float scoreLine(int i,int nextPoint,WeavingThread wt) {
-  float dx = px[nextPoint] - px[i];
-  float dy = py[nextPoint] - py[i];
-  float len = lengths[(int)abs(nextPoint-i)];//Math.floor( Math.sqrt(dx*dx+dy*dy) );
+  float sx=px[i];
+  float sy=py[i];
+  float dx = px[nextPoint] - sx;
+  float dy = py[nextPoint] - sy;
+  float len = diameter;
+              //lengths[(int)abs(nextPoint-i)];
+              //sqrt(dx*dx + dy*dy);
 
   color cc = wt.c;
-
-  float diff0=scoreColors(img.get((int)px[i], (int)py[i]),cc);
-  float s,fx,fy,dc,ic,diff1,change;
+  float ccAlpha = (alpha(cc)/255.0);
+  //println(ccAlpha);
   
-  // measure how dark is the image under this line.
-  float intensity = 0;
-  for(int k=0; k<len; ++k) {
-    s = (float)k/len; 
-    fx = px[i] + dx * s;
-    fy = py[i] + dy * s;
+  float scoreBefore=0;
+  float scoreAfter=0;
+  float oldA=0,oldB=0;
+  
+  for(float k=0; k<len; k+=1) {
+    float s = k/len; 
+    int fx = (int)(sx + dx * s);
+    int fy = (int)(sy + dy * s);
 
-    color original = img.get((int)fx, (int)fy);
-    color latest = dest.get((int)fx, (int)fy);
-    dc = scoreColors(latest,cc);
-    ic = scoreColors(original,cc);
-    diff1 = ic-dc;
-    change=abs(diff0-ic);
-    intensity += diff1 + change;
-    diff0=ic;
-
+    color original = img.get(fx,fy);
+    color current = dest.get(fx,fy);
+    color newest = lerpColor(current,cc,ccAlpha);
+    
+    float newB = scoreColors(original,current);
+    float newA = scoreColors(original,newest );
+    scoreBefore += newB + abs(newB-oldB)*0.1;
+    scoreAfter  += newA + abs(newA-oldA)*0.1;
+    oldB=newB;
+    oldA=newA;
   }
-  return intensity;///len;
+  
+  return (scoreAfter - scoreBefore);
 }
 
-float scoreColors(color a,color b) {
-  float dr = red(a)-red(b);
-  float dg = green(a)-green(b);
-  float db = blue(a)-blue(b);
-  return sqrt(dr*dr+dg*dg+db*db)*alpha(b);
+float scoreColors(color c0,color c1) {
+  float r = red(  c0)-red(  c1);
+  float g = green(c0)-green(c1);
+  float b = blue( c0)-blue( c1);
+  return (r*r + g*g + b*b);
 }
 
 void drawToDest(int start, int end, color c) {
