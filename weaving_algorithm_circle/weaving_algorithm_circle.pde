@@ -6,11 +6,11 @@
 // points around the circle
 final int numberOfPoints = 230;
 // self-documenting
-final int numberOfLinesToDrawPerFrame = 50;
+final int numberOfLinesToDrawPerFrame = 10;
 // self-documenting
-final int totalLinesToDraw=8000;
+final int totalLinesToDraw=6000;
 // how thick are the threads?
-final float lineWeight = 0.8;  // default 1
+final float lineWeight = 1.2;  // default 1
 final float stringAlpha = 48; // 0...255 with 0 being totally transparent.
 // ignore N nearest neighbors to this starting point
 final int skipNeighbors=20;
@@ -27,6 +27,7 @@ final color white = color(255, 255, 255,stringAlpha);
 final color black = color(0, 0, 0,stringAlpha);
 final color blue = color(0, 0, 255,stringAlpha);
 final color green = color(0, 255, 0,stringAlpha);
+final color yellow = color(255, 255, 0,stringAlpha);
 final color red = color(255, 0, 0,stringAlpha);
 
 
@@ -138,8 +139,9 @@ void inputSelected(File selection) {
   
   threads.add(addLine(white,"white"));
   threads.add(addLine(black,"black"));
+  //threads.add(addLine(red,"red"));
   //threads.add(addLine(blue,"blue"));
-  //threads.add(addLine(color(230, 211, 133),"yellow"));
+  //threads.add(addLine(color(237, 180, 168),"pink"));
   ready=true;
 }
 
@@ -158,7 +160,7 @@ void setBackgroundColor() {
   }
   */
   // set to white
-  float r=255,g=255,b=255;
+  float r=127,g=127,b=127;
   int size=1;
   
   dest.beginDraw();
@@ -292,22 +294,25 @@ BestResult findBest(WeavingThread wt) {
   // starting from the last line added
   i=wt.currentPoint;
 
+  //for(i=wt.currentPoint-2;i<wt.currentPoint+2;++i)
   // uncomment this line to compare all starting points, not just the current starting point.  O(n*n) slower.
   //for(i=0;i<numberOfPoints;++i)
   {
-    int i0 = i+1+skipNeighbors;
-    int i1 = i+numberOfPoints-skipNeighbors;
+    int iSafe = (i+numberOfPoints)%numberOfPoints;
+    
+    int i0 = iSafe+1+skipNeighbors;
+    int i1 = iSafe+numberOfPoints-skipNeighbors;
     for (j=i0; j<i1; ++j) {
       int nextPoint = j % numberOfPoints;
-      if(wt.done[i*numberOfPoints+nextPoint]>0) {
-        //wt.done[i*numberOfPoints+nextPoint]--;
+      if(wt.done[iSafe*numberOfPoints+nextPoint]>0) {
+        //wt.done[iSafe*numberOfPoints+nextPoint]--;
         //wt.done[nextPoint*numberOfPoints+i]--;
         continue;
       }
-      double currentIntensity = scoreLine(i,nextPoint,wt);
+      double currentIntensity = scoreLine(iSafe,nextPoint,wt);
       if ( maxValue > currentIntensity ) {
         maxValue = currentIntensity;
-        maxA = i;
+        maxA = iSafe;
         maxB = nextPoint;
       }
     }
@@ -341,8 +346,9 @@ float scoreLine(int i,int nextPoint,WeavingThread wt) {
   float sy=py[i];
   float dx = px[nextPoint] - sx;
   float dy = py[nextPoint] - sy;
-  float len = diameter;
-              //lengths[(int)abs(nextPoint-i)];
+  float center=height/2;
+  float radius = diameter/2.01;
+  float len = lengths[(int)abs(nextPoint-i)] / 2.0 ;
               //sqrt(dx*dx + dy*dy);
 
   color cc = wt.c;
@@ -351,26 +357,27 @@ float scoreLine(int i,int nextPoint,WeavingThread wt) {
   
   float scoreBefore=0;
   float scoreAfter=0;
-  float oldA=0,oldB=0;
   
-  for(float k=0; k<len; k+=1) {
+  for(float k=0; k<len; k++) {
     float s = k/len; 
     int fx = (int)(sx + dx * s);
     int fy = (int)(sy + dy * s);
-
     color original = img.get(fx,fy);
     color current = dest.get(fx,fy);
     color newest = lerpColor(current,cc,ccAlpha);
     
+    float cx = fx-center;
+    float cy = fy-center;
+    float r = 1.0 / (1.0+(cx*cx + cy*cy));
+    
     float newB = scoreColors(original,current);
     float newA = scoreColors(original,newest );
-    scoreBefore += newB + abs(newB-oldB)*0.1;
-    scoreAfter  += newA + abs(newA-oldA)*0.1;
-    oldB=newB;
-    oldA=newA;
+    
+    scoreBefore += newB*r;
+    scoreAfter  += newA*r;
   }
   
-  return (scoreAfter - scoreBefore);
+  return (scoreAfter - scoreBefore)*diameter/len;
 }
 
 float scoreColors(color c0,color c1) {
