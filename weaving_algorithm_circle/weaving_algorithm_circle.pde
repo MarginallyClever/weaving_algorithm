@@ -3,8 +3,9 @@
 // dan@marginallyclever.com 2016-08-05
 // based on work by Petros Vrellis (http://artof01.com/vrellis/works/knit.html)
 //------------------------------------------------------
+
 // points around the circle
-final int numberOfPoints = 230;
+final int numberOfPoints = 200;
 // self-documenting
 final int numberOfLinesToDrawPerFrame = 10;
 // self-documenting
@@ -14,11 +15,6 @@ final float lineWeight = 1.2;  // default 1
 final float stringAlpha = 48; // 0...255 with 0 being totally transparent.
 // ignore N nearest neighbors to this starting point
 final int skipNeighbors=20;
-
-// set true to start paused.  click the mouse in the screen to pause/unpause.
-boolean paused=true;
-// make this true to add one line per mouse click.
-boolean singleStep=false;
 
 // convenience colors.  RGBA. 
 // Alpha is how dark is the string being added.  1...255 smaller is lighter.
@@ -30,37 +26,41 @@ final color green = color(0, 255, 0,stringAlpha);
 final color yellow = color(255, 255, 0,stringAlpha);
 final color red = color(255, 0, 0,stringAlpha);
 
-
 //------------------------------------------------------
-float [] px = new float[numberOfPoints];
-float [] py = new float[numberOfPoints];
-float [] lengths = new float[numberOfPoints];
-PImage img;
-PGraphics dest; 
 
-
+// WeavingThread class tracks a thread as it is being woven around the nails.
 class WeavingThread {
+  // thread color (hex value)
   public color c;
-  public int currentPoint;
+  // thread color name (human readable)
   public String name;
+  // last nail reached
+  public int currentPoint;
+  // a list of all nail pairs already visited.  I don't want the app to put many
+  // identical strings on the same two nails, so WeavingThread.done[] tracks 
+  // which pairs are finished.
   public char [] done;
 };
 
-
+// for tracking the best place to put the next weaving thread.
 class BestResult {
-  public int maxA,maxB;
+  // nails
+  public int bestStart,bestEnd;
+  // score
   public double maxValue;
   
   public BestResult( int a, int b, double v) {
-    maxA=a;
-    maxB=b;
+    bestStart=a;
+    bestEnd=b;
     maxValue=v;
   }
 };
 
-
+// for re-drawing the end result quickly.
 class FinishedLine {
+  // nails
   public int start,end;
+  // hex color
   public color c;
   
   public FinishedLine(int s,int e,color cc) {
@@ -70,16 +70,48 @@ class FinishedLine {
   }
 };
 
+//------------------------------------------------------
 
+// finished lines in the weave.
 ArrayList<FinishedLine> finishedLines = new ArrayList<FinishedLine>(); 
+
+// threads actively being woven
 ArrayList<WeavingThread> threads = new ArrayList<WeavingThread>();
 
+// stop when totalLinesDrawn==totalLinesToDraw
 int totalLinesDrawn=0;
 
-float scaleW,scaleH;
+// diameter of weave
 float diameter;
+
+// can we start weaving yet?!
 boolean ready;
 
+// set true to start paused.  click the mouse in the screen to pause/unpause.
+boolean paused=false;
+
+// make this true to pause after every frame.
+boolean singleStep=false;
+
+// nail locations
+float [] px = new float[numberOfPoints];
+float [] py = new float[numberOfPoints];
+
+// distance from nail n to nail n+m
+float [] lengths = new float[numberOfPoints];
+
+// image user wants converted
+PImage img;
+
+// place to store visible progress fo weaving.
+// also used for finding next best thread.
+PGraphics dest; 
+
+//PImage weights;
+
+long startTime;
+
+//------------------------------------------------------
 
 // run once on start.
 void setup() {
@@ -101,6 +133,10 @@ void inputSelected(File selection) {
   //img = loadImage("cropped.jpg");
   //img = loadImage("unnamed.jpg");
   img = loadImage(selection.getAbsolutePath());
+  String wFile = selection.getAbsolutePath();
+  String ext = wFile.substring(wFile.indexOf('.'));
+  String name = wFile.substring(0,wFile.indexOf('.'));
+  //weights = loadImage(name+" weight"+ext);
   
   // crop image to square
   if(img.height<img.width) {
@@ -112,8 +148,8 @@ void inputSelected(File selection) {
   // resize to fill window
   img.resize(width/2,width/2);
 
-  dest = createGraphics(img.width, img.height);
-
+  dest = createGraphics(width/2,width/2);
+  
   setBackgroundColor();
   
   // smash the image to grayscale
@@ -137,11 +173,13 @@ void inputSelected(File selection) {
     lengths[i] = sqrt(dx*dx+dy*dy);
   }
   
-  threads.add(addLine(white,"white"));
-  threads.add(addLine(black,"black"));
-  //threads.add(addLine(red,"red"));
-  //threads.add(addLine(blue,"blue"));
-  //threads.add(addLine(color(237, 180, 168),"pink"));
+  threads.add(startNewWeavingThread(white,"white"));
+  threads.add(startNewWeavingThread(black,"black"));
+  //threads.add(startNewWeavingThread(red,"red"));
+  //threads.add(startNewWeavingThread(blue,"blue"));
+  //threads.add(startNewWeavingThread(color(237, 180, 168),"pink"));
+  
+  startTime=millis();
   ready=true;
 }
 
@@ -172,25 +210,30 @@ void setBackgroundColor() {
 }
 
 
-WeavingThread addLine(color c,String name) {
+// setup a new WeavingThread and place it on the best pair of nails.
+WeavingThread startNewWeavingThread(color c,String name) {
   WeavingThread wt = new WeavingThread();
   wt.c=c;
   wt.name=name;
   wt.done = new char[numberOfPoints*numberOfPoints];
 
   // find best start
-  wt.currentPoint = 0; 
-  float bestScore = MAX_FLOAT;
+  int bestI=0, bestJ=1; 
+  float bestScore = 0;
   int i,j;
   for(i=0;i<numberOfPoints;++i) {
     for(j=i+1;j<numberOfPoints;++j) {
       float score = scoreLine(i,j,wt);
-      if(bestScore>score) {
+      if(bestScore<score) {
         bestScore = score;
-        wt.currentPoint=i;
+        bestI=i;
+        bestJ=j;
       }
     }
   }
+  
+  drawLine(wt,bestI,bestJ);
+  
   return wt;
 }
 
@@ -224,17 +267,17 @@ void draw() {
           }
         }
         // draw that best line.
-        drawLine(threads.get(best),br[best].maxA,br[best].maxB);
+        drawLine(threads.get(best),br[best].bestStart,br[best].bestEnd);
       }
       if (singleStep) paused=true;
     }
-    image(img, width/2, 0,width/2,height);
-    image(dest, 0, 0, width/2, height);
   } else {
     // finished!    
     calculationFinished();
   }
   
+  image(img, width/2, 0,width/2,height);
+  image(dest, 0, 0, width/2, height);
   drawProgressBar();
 }
 
@@ -252,6 +295,9 @@ void drawProgressBar() {
 // stop drawing and ask user where (if) to save CSV.
 void calculationFinished() {
   noLoop();
+  
+  long endTime=millis();
+  println("Time = "+ (endTime-startTime)+"ms");
   selectOutput("Select a destination CSV file","outputSelected");
 }
 
@@ -283,13 +329,14 @@ String getThreadName(color c) {
 }
 
 
-// a weaving thread starts at wt.currentPoint.  for all other points Pn, look at the line between here and all other points Ln(Pn).  
-// The Ln with the lowest score is the best fit.  zero would be a perfect score.
+// a weaving thread starts at wt.currentPoint.  for all other points Pn, look at the line 
+// between here and all other points Ln(Pn).  
+// The Ln with the lowest score is the best fit.
 BestResult findBest(WeavingThread wt) {
   int i, j;
   double maxValue = Double.MAX_VALUE;
-  int maxA = 0;
-  int maxB = 0;
+  int bestStart = 0;
+  int bestEnd = 0;
 
   // starting from the last line added
   i=wt.currentPoint;
@@ -298,101 +345,149 @@ BestResult findBest(WeavingThread wt) {
   // uncomment this line to compare all starting points, not just the current starting point.  O(n*n) slower.
   //for(i=0;i<numberOfPoints;++i)
   {
+    // start, made safe in case we're doing the all-nails-to-all-nails test.
     int iSafe = (i+numberOfPoints)%numberOfPoints;
     
-    int i0 = iSafe+1+skipNeighbors;
-    int i1 = iSafe+numberOfPoints-skipNeighbors;
-    for (j=i0; j<i1; ++j) {
+    // the range of ending nails cannot include skipNeighbors.
+    int end0 = iSafe+1+skipNeighbors;
+    int end1 = iSafe+numberOfPoints-skipNeighbors;
+    for (j=end0; j<end1; ++j) {
       int nextPoint = j % numberOfPoints;
-      if(wt.done[iSafe*numberOfPoints+nextPoint]>0) {
-        //wt.done[iSafe*numberOfPoints+nextPoint]--;
-        //wt.done[nextPoint*numberOfPoints+i]--;
+      if(isDone(wt,iSafe,nextPoint)) {
         continue;
       }
-      double currentIntensity = scoreLine(iSafe,nextPoint,wt);
-      if ( maxValue > currentIntensity ) {
-        maxValue = currentIntensity;
-        maxA = iSafe;
-        maxB = nextPoint;
+      double score = scoreLine(iSafe,nextPoint,wt);
+      if ( maxValue > score ) {
+        maxValue = score;
+        bestStart = iSafe;
+        bestEnd = nextPoint;
       }
     }
   }
   
-  return new BestResult( maxA, maxB, maxValue );
+  return new BestResult( bestStart, bestEnd, maxValue );
 }
 
 
 // commit the new line to the destination image (our results so far)
 // also remember the details for later.
-void drawLine(WeavingThread wt,int maxA,int maxB) {
-  //println(totalLinesDrawn+" : "+wt.name+"\t"+maxA+"\t"+maxB+"\t"+maxValue);
+void drawLine(WeavingThread wt,int a,int b) {
+  //println(totalLinesDrawn+" : "+wt.name+"\t"+bestStart+"\t"+bestEnd+"\t"+maxValue);
   
-  drawToDest(maxA, maxB, wt.c);
-  wt.done[maxA*numberOfPoints+maxB]=20;
-  wt.done[maxB*numberOfPoints+maxA]=20;
+  drawToDest(a, b, wt.c);
+  setDone(wt,a,b);
   totalLinesDrawn++;
-  
   // move to the end of the line.
-  wt.currentPoint = maxB;
+  wt.currentPoint = b;
 }
 
-/**
- * Measure the change if thread wt were put here.
- * There is score A, the result so far: the difference between the original and the latest image.  A perfect match would be zero.  It is never a negative value.
- * There is score B, the result if latest were changed by the new thread. 
- */
-float scoreLine(int i,int nextPoint,WeavingThread wt) {
-  float sx=px[i];
-  float sy=py[i];
-  float dx = px[nextPoint] - sx;
-  float dy = py[nextPoint] - sy;
-  float center=height/2;
-  float radius = diameter/2.01;
-  float len = lengths[(int)abs(nextPoint-i)] / 2.0 ;
-              //sqrt(dx*dx + dy*dy);
 
-  color cc = wt.c;
-  float ccAlpha = (alpha(cc)/255.0);
-  //println(ccAlpha);
-  
-  float scoreBefore=0;
-  float scoreAfter=0;
-  
-  for(float k=0; k<len; k++) {
-    float s = k/len; 
-    int fx = (int)(sx + dx * s);
-    int fy = (int)(sy + dy * s);
-    color original = img.get(fx,fy);
-    color current = dest.get(fx,fy);
-    color newest = lerpColor(current,cc,ccAlpha);
-    
-    float cx = fx-center;
-    float cy = fy-center;
-    float r = 1.0 / (1.0+(cx*cx + cy*cy));
-    
-    float newB = scoreColors(original,current);
-    float newA = scoreColors(original,newest );
-    
-    scoreBefore += newB*r;
-    scoreAfter  += newA*r;
-  }
-  
-  return (scoreAfter - scoreBefore)*diameter/len;
-}
-
-float scoreColors(color c0,color c1) {
-  float r = red(  c0)-red(  c1);
-  float g = green(c0)-green(c1);
-  float b = blue( c0)-blue( c1);
-  return (r*r + g*g + b*b);
-}
-
+// draw thread on screen.
 void drawToDest(int start, int end, color c) {
-  // draw darkest threads on screen.
   dest.beginDraw();
   dest.stroke(c);
   dest.strokeWeight(lineWeight);
   dest.line((float)px[start], (float)py[start], (float)px[end], (float)py[end]);
   dest.endDraw();
+  
   finishedLines.add(new FinishedLine(start,end,c));
+}
+
+
+void setDone(WeavingThread wt,int a,int b) {
+  if(b<a) {
+    int c=b;
+    b=a;
+    a=c;
+  }
+  int index = a*numberOfPoints+b;
+  wt.done[index]=1;
+}
+
+
+boolean isDone(WeavingThread wt,int a,int b) {
+  if(b<a) {
+    int c=b;
+    b=a;
+    a=c;
+  }
+  int index = a*numberOfPoints+b;
+  return wt.done[index]!=0;
+}
+
+
+/**
+ * Measure the change if thread wt were put here.
+ * A line begins at point S and goes to point E.  The difference D=E-S.
+ * I want to test at all points i of N along the line, or pN = S + (D*i/N).  
+ * (i/N will always be 0...1)
+ *
+ * There is score A, the result so far: the difference between the original 
+ * and the latest image.  A perfect match would be zero.  It is never a negative value.
+ * There is score B, the result if latest were changed by the new thread.
+ * We are looking for the score that improves the drawing the most.
+ */
+float scoreLine(int startPoint,int endPoint,WeavingThread wt) {
+  // S
+  float sx=px[startPoint];
+  float sy=py[startPoint];
+  // D
+  float dx = px[endPoint] - sx;
+  float dy = py[endPoint] - sy;
+  // N
+  float N = lengths[(int)abs(endPoint-startPoint)];
+  
+  float center=height/2;
+
+  color cc = wt.c;
+  float ccAlpha = (alpha(cc)/255.0);
+  //println(ccAlpha);
+  
+  float errorBefore=0;
+  float errorAfter=0;
+
+  for(float i=0; i<N; i++) {
+    float iN = i/N; 
+    int px = (int)(sx + dx * iN);
+    int py = (int)(sy + dy * iN);
+    
+    // color of original picture
+    color original = img.get(px,py);
+    // color of weave so far
+    color current = dest.get(px,py);
+    // color of weave if changed by the thread in question.
+    color newest = lerpColor(current,cc,ccAlpha);
+    
+    // how wrong is dest?
+    float oldError = scoreColors(original,current);
+    // how wrong will dest be with the new thread?
+    float newError = scoreColors(original,newest );
+
+    // distance from center of circle.
+    float cx = px-center;
+    float cy = py-center;
+    // square of distance
+    float cd = cx*cx + cy*cy;
+    // make pixels in the center more important than pixels on the edge.
+    float r = 1.0 / (1.0 + cd);
+
+    // experiments with weight maps.
+    float m = 1.0;//-((red(weights.get(fx,fy))/255.0));
+    
+    errorBefore += oldError*r*m;
+    errorAfter  += newError*r*m;
+  }
+  
+  // if errorAfter is less than errorBefore, result will be <0.
+  // if error is identical, number will be 0.
+  // if error is worse, result will be >0
+  return (errorAfter-errorBefore);//*diameter/N;
+}
+
+// the square of the linear distance between two colors in RGB space.
+float scoreColors(color c0,color c1) {
+  float r = red(  c0)-red(  c1);
+  float g = green(c0)-green(c1);
+  float b = blue( c0)-blue( c1);
+  return (r*r + g*g + b*b);
 }
