@@ -103,11 +103,17 @@ float [] lengths = new float[numberOfPoints];
 // image user wants converted
 PImage img;
 
+Octree tree = new Octree();
+
+// image user wants converted
+PImage quantizedImage;
+
 // place to store visible progress fo weaving.
 // also used for finding next best thread.
 PGraphics dest; 
 
-//PImage weights;
+// which results to draw on screen.
+int showImage;
 
 long startTime;
 
@@ -116,7 +122,7 @@ long startTime;
 // run once on start.
 void setup() {
   // make the window.  must be (h*2,h+20)
-  size(1600,820);
+  size(800,820);
 
   ready=false;
   selectInput("Select an image file","inputSelected");
@@ -133,10 +139,6 @@ void inputSelected(File selection) {
   //img = loadImage("cropped.jpg");
   //img = loadImage("unnamed.jpg");
   img = loadImage(selection.getAbsolutePath());
-  String wFile = selection.getAbsolutePath();
-  String ext = wFile.substring(wFile.indexOf('.'));
-  String name = wFile.substring(0,wFile.indexOf('.'));
-  //weights = loadImage(name+" weight"+ext);
   
   // crop image to square
   if(img.height<img.width) {
@@ -146,9 +148,14 @@ void inputSelected(File selection) {
   }
   
   // resize to fill window
-  img.resize(width/2,width/2);
+  img.resize(width,width);
 
-  dest = createGraphics(width/2,width/2);
+  quantizedImage = img.copy();
+  
+  dest = createGraphics(width,width);
+  
+  // the last number is the number of colors in the final palette.
+  tree.quantize(quantizedImage,5);
   
   setBackgroundColor();
   
@@ -173,22 +180,29 @@ void inputSelected(File selection) {
     lengths[i] = sqrt(dx*dx+dy*dy);
   }
   
-  threads.add(startNewWeavingThread(white,"white"));
-  threads.add(startNewWeavingThread(black,"black"));
-  //threads.add(startNewWeavingThread(red,"red"));
-  //threads.add(startNewWeavingThread(blue,"blue"));
-  //threads.add(startNewWeavingThread(color(237, 180, 168),"pink"));
-  
+  if(tree.heap.size()==0) {
+    threads.add(startNewWeavingThread(white,"white"));
+    threads.add(startNewWeavingThread(black,"black"));
+    //threads.add(startNewWeavingThread(red,"red"));
+    //threads.add(startNewWeavingThread(blue,"blue"));
+    //threads.add(startNewWeavingThread(color(237, 180, 168),"pink"));
+  } else {
+    while(tree.heap.size()>0) {
+      OctreeNode n = tree.heap.remove(0);
+      color c=color(n.r,n.g,n.b);
+      threads.add(startNewWeavingThread(c,n.r+","+n.g+","+n.b));
+    }
+  }
   startTime=millis();
   ready=true;
 }
 
 
 void setBackgroundColor() {
-/*
-  // find average color of image
   float r=0,g=0,b=0;
-  int size=img.width*img.height;
+  /*
+  // find average color of image
+  float size=img.width*img.height;
   int i;
   for(i=0;i<size;++i) {
     color c=img.pixels[i];
@@ -196,16 +210,20 @@ void setBackgroundColor() {
     g+=green(c);
     b+=blue(c);
   }
+  r/=size;
+  g/=size;
+  b/=size;
   */
-  // set to white
-  float r=127,g=127,b=127;
-  int size=1;
+  
+  if(tree.heap.size()>0) {
+    OctreeNode n = tree.heap.remove(tree.heap.size()-1);
+    r=n.r;
+    g=n.g;
+    b=n.b;
+  }
   
   dest.beginDraw();
-  dest.background(
-    r/(float)size,
-    g/(float)size,
-    b/(float)size);
+  dest.background(r,g,b);
   dest.endDraw();
 }
 
@@ -242,6 +260,13 @@ void mouseReleased() {
   paused = paused ? false : true;
 }
 
+void keyReleased() {
+  if(key=='1') showImage=0;
+  if(key=='2') showImage=1;
+  if(key=='3') showImage=2;
+  
+  println(key);
+}
 
 void draw() {
   if(!ready) return;
@@ -276,8 +301,11 @@ void draw() {
     calculationFinished();
   }
   
-  image(img, width/2, 0,width/2,height);
-  image(dest, 0, 0, width/2, height);
+  switch(showImage) {
+  case 0: image(dest, 0, 0, width, height); break;
+  case 1: image(img , 0, 0, width, height); break;
+  case 2: image(quantizedImage, 0, 0, width, height); break;
+  } 
   drawProgressBar();
 }
 
@@ -287,7 +315,11 @@ void drawProgressBar() {
   strokeWeight(10);  // thick
   stroke(0,0,255,255);
   line(10, 5, (width-10), 5);
-  stroke(0,255,0,255);
+  if(paused) {
+    stroke(255,0,0,255);
+  } else {
+    stroke(0,255,0,255);
+  }
   line(10, 5, (width-10)*percent, 5);
 }
 
@@ -470,12 +502,9 @@ float scoreLine(int startPoint,int endPoint,WeavingThread wt) {
     float cd = cx*cx + cy*cy;
     // make pixels in the center more important than pixels on the edge.
     float r = 1.0 / (1.0 + cd);
-
-    // experiments with weight maps.
-    float m = 1.0;//-((red(weights.get(fx,fy))/255.0));
     
-    errorBefore += oldError*r*m;
-    errorAfter  += newError*r*m;
+    errorBefore += oldError * r;
+    errorAfter  += newError * r;
   }
   
   // if errorAfter is less than errorBefore, result will be <0.
