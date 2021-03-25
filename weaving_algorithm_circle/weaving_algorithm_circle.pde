@@ -7,7 +7,7 @@
 // points around the circle
 final int numberOfPoints = 200;
 // self-documenting
-final int numberOfLinesToDrawPerFrame = 10;
+final int numberOfLinesToDrawPerFrame = 1;
 // self-documenting
 final int totalLinesToDraw=6000;
 // how thick are the threads?
@@ -15,6 +15,8 @@ final float lineWeight = 1.2;  // default 1
 final float stringAlpha = 48; // 0...255 with 0 being totally transparent.
 // ignore N nearest neighbors to this starting point
 final int skipNeighbors=20;
+// make picture bigger than what is visible for more accuracy
+final int upScale=2;
 
 // convenience colors.  RGBA. 
 // Alpha is how dark is the string being added.  1...255 smaller is lighter.
@@ -36,10 +38,6 @@ class WeavingThread {
   public String name;
   // last nail reached
   public int currentPoint;
-  // a list of all nail pairs already visited.  I don't want the app to put many
-  // identical strings on the same two nails, so WeavingThread.done[] tracks 
-  // which pairs are finished.
-  public char [] done;
 };
 
 // for tracking the best place to put the next weaving thread.
@@ -47,12 +45,12 @@ class BestResult {
   // nails
   public int bestStart,bestEnd;
   // score
-  public double maxValue;
+  public float bestValue;
   
-  public BestResult( int a, int b, double v) {
+  public BestResult( int a, int b, float v) {
     bestStart=a;
     bestEnd=b;
-    maxValue=v;
+    bestValue=v;
   }
 };
 
@@ -117,6 +115,11 @@ int showImage;
 
 long startTime;
 
+// a list of all nail pairs already visited.  I don't want the app to put many
+// identical strings on the same two nails, so WeavingThread.done[] tracks 
+// which pairs are finished.
+public char [] done = new char[numberOfPoints*numberOfPoints];
+  
 //------------------------------------------------------
 
 // run once on start.
@@ -148,11 +151,11 @@ void inputSelected(File selection) {
   }
   
   // resize to fill window
-  img.resize(width,width);
+  img.resize(width*upScale,width*upScale);
 
   quantizedImage = img.copy();
   
-  dest = createGraphics(width,width);
+  dest = createGraphics(img.width,img.height);
   
   // the last number is the number of colors in the final palette.
   tree.quantize(quantizedImage,5);
@@ -180,19 +183,20 @@ void inputSelected(File selection) {
     lengths[i] = sqrt(dx*dx+dy*dy);
   }
   
-  if(tree.heap.size()==0) {
+  //if(tree.heap.size()==0) 
+  {
     threads.add(startNewWeavingThread(white,"white"));
     threads.add(startNewWeavingThread(black,"black"));
     //threads.add(startNewWeavingThread(red,"red"));
     //threads.add(startNewWeavingThread(blue,"blue"));
     //threads.add(startNewWeavingThread(color(237, 180, 168),"pink"));
-  } else {
+  }/* else {
     while(tree.heap.size()>0) {
       OctreeNode n = tree.heap.remove(0);
       color c=color(n.r,n.g,n.b);
       threads.add(startNewWeavingThread(c,n.r+","+n.g+","+n.b));
     }
-  }
+  }*/
   startTime=millis();
   ready=true;
 }
@@ -233,16 +237,15 @@ WeavingThread startNewWeavingThread(color c,String name) {
   WeavingThread wt = new WeavingThread();
   wt.c=c;
   wt.name=name;
-  wt.done = new char[numberOfPoints*numberOfPoints];
 
   // find best start
   int bestI=0, bestJ=1; 
-  float bestScore = 0;
+  float bestScore = Float.MAX_VALUE;
   int i,j;
   for(i=0;i<numberOfPoints;++i) {
     for(j=i+1;j<numberOfPoints;++j) {
       float score = scoreLine(i,j,wt);
-      if(bestScore<score) {
+      if(bestScore>score) {
         bestScore = score;
         bestI=i;
         bestJ=j;
@@ -253,6 +256,27 @@ WeavingThread startNewWeavingThread(color c,String name) {
   drawLine(wt,bestI,bestJ);
   
   return wt;
+}
+
+void findBestStart(WeavingThread wt) {
+  // find best start
+  int bestI=0, bestJ=1; 
+  float bestScore = 0;
+  int i,j;
+  for(i=0;i<numberOfPoints;++i) {
+    for(j=i+1;j<numberOfPoints;++j) {
+      if(isDone(i,j)) continue;
+      
+      float score = scoreLine(i,j,wt);
+      if(bestScore<score) {
+        bestScore = score;
+        bestI=i;
+        bestJ=j;
+      }
+    }
+  }
+  
+  wt.currentPoint=i;
 }
 
 
@@ -282,15 +306,19 @@ void draw() {
         for(int j=0;j<threads.size();++j) {
           br[j]=findBest(threads.get(j));
         }
-        // of the threads tested, which is best?
-        double v = br[0].maxValue;
+        // of the threads tested, which is best?  The one with the lowest score.
+        float v = br[0].bestValue;
         int best = 0;
         for(int j=1;j<threads.size();++j) {
-          if( v > br[j].maxValue ) {
-            v = br[j].maxValue;
+          if( v > br[j].bestValue ) {
+            v = br[j].bestValue;
             best = j;
           }
         }
+        if(v>0) {
+          // the best line is actually making the picture WORSE.
+        }
+        
         // draw that best line.
         drawLine(threads.get(best),br[best].bestStart,br[best].bestEnd);
       }
@@ -366,7 +394,7 @@ String getThreadName(color c) {
 // The Ln with the lowest score is the best fit.
 BestResult findBest(WeavingThread wt) {
   int i, j;
-  double maxValue = Double.MAX_VALUE;
+  float bestValue = Float.MAX_VALUE;
   int bestStart = 0;
   int bestEnd = 0;
 
@@ -385,19 +413,19 @@ BestResult findBest(WeavingThread wt) {
     int end1 = iSafe+numberOfPoints-skipNeighbors;
     for (j=end0; j<end1; ++j) {
       int nextPoint = j % numberOfPoints;
-      if(isDone(wt,iSafe,nextPoint)) {
+      if(isDone(iSafe,nextPoint)) {
         continue;
       }
-      double score = scoreLine(iSafe,nextPoint,wt);
-      if ( maxValue > score ) {
-        maxValue = score;
+      float score = scoreLine(iSafe,nextPoint,wt);
+      if ( bestValue > score ) {
+        bestValue = score;
         bestStart = iSafe;
         bestEnd = nextPoint;
       }
     }
   }
   
-  return new BestResult( bestStart, bestEnd, maxValue );
+  return new BestResult( bestStart, bestEnd, bestValue );
 }
 
 
@@ -418,7 +446,7 @@ void drawLine(WeavingThread wt,int a,int b) {
 void drawToDest(int start, int end, color c) {
   dest.beginDraw();
   dest.stroke(c);
-  dest.strokeWeight(lineWeight);
+  dest.strokeWeight(lineWeight*upScale);
   dest.line((float)px[start], (float)py[start], (float)px[end], (float)py[end]);
   dest.endDraw();
   
@@ -426,25 +454,25 @@ void drawToDest(int start, int end, color c) {
 }
 
 
-void setDone(WeavingThread wt,int a,int b) {
+void setDone(int a,int b) {
   if(b<a) {
     int c=b;
     b=a;
     a=c;
   }
   int index = a*numberOfPoints+b;
-  wt.done[index]=1;
+  done[index]=1;
 }
 
 
-boolean isDone(WeavingThread wt,int a,int b) {
+boolean isDone(int a,int b) {
   if(b<a) {
     int c=b;
     b=a;
     a=c;
   }
   int index = a*numberOfPoints+b;
-  return wt.done[index]!=0;
+  return done[index]!=0;
 }
 
 
@@ -467,7 +495,7 @@ float scoreLine(int startPoint,int endPoint,WeavingThread wt) {
   float dx = px[endPoint] - sx;
   float dy = py[endPoint] - sy;
   // N
-  float N = lengths[(int)abs(endPoint-startPoint)];
+  float N = lengths[(int)abs(endPoint-startPoint)] /upScale;
   
   float center=height/2;
 
@@ -495,13 +523,14 @@ float scoreLine(int startPoint,int endPoint,WeavingThread wt) {
     // how wrong will dest be with the new thread?
     float newError = scoreColors(original,newest );
 
-    // distance from center of circle.
+    // make pixels in the center more important than pixels on the edge.
     float cx = px-center;
     float cy = py-center;
     // square of distance
     float cd = cx*cx + cy*cy;
-    // make pixels in the center more important than pixels on the edge.
+    // make sure we can't have a divide by zero.
     float r = 1.0 / (1.0 + cd);
+    //float r = 1.0; 
     
     errorBefore += oldError * r;
     errorAfter  += newError * r;
