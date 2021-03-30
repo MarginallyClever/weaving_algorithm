@@ -4,8 +4,10 @@
 // based on work by Petros Vrellis (http://artof01.com/vrellis/works/knit.html)
 //------------------------------------------------------
 
-// points around the shape
-int numberOfPoints = 200;
+int pointsWide=40;
+int pointsHigh=60;
+int numberOfPoints = pointsWide * pointsHigh;
+
 // self-documenting
 int numberOfLinesToDrawPerFrame = 1;
 // self-documenting
@@ -33,7 +35,6 @@ int numLines = numberOfPoints * numberOfPoints / 2;
 float [] intensities = new float[numberOfPoints];
 double [] px = new double[numberOfPoints];
 double [] py = new double[numberOfPoints];
-double [] lengths = new double[numberOfPoints];
 PImage img;
 
 int totalLinesDrawn=0;
@@ -56,42 +57,25 @@ void setup() {
   // smash the image to grayscale
   img.filter(GRAY);
   
-  // find the size of the circle and calculate the points around the edge.
-  double maxr;
-  if( img.width > img.height ) 
-       maxr = img.height/2;
-  else maxr = img.width/2;
-/*
-  int i;
-  for(i=0;i<numberOfPoints;++i) {
-    double d = Math.PI * 2.0 * (double)i/(double)numberOfPoints;
-    px[i] = img.width/2 + Math.sin(d) * maxr;
-    py[i] = img.height/2 + Math.cos(d) * maxr;
-  }
-  */
-  int qp = numberOfPoints/4; 
-  int i;
-  for(i=0;i<qp;++i) {
-    double d = (double)i/(double)qp * maxr*2;
-    // clockwise from top left
-    px[     i] = img.width /2-maxr + d;
-    py[     i] = img.height/2-maxr;
-
-    px[qp  +i] = img.width /2+maxr;
-    py[qp  +i] = img.height/2-maxr + d;
-
-    px[qp*2+i] = img.width /2+maxr - d;
-    py[qp*2+i] = img.height/2+maxr;
-
-    px[qp*3+i] = img.width /2-maxr;
-    py[qp*3+i] = img.height/2+maxr - d;
+  int half = numberOfPoints/2;
+  
+  for(int x=0;x<pointsWide;++x) {
+    // top
+    px[     x] = img.width*(x/pointsWide);
+    py[     x] = 0;
+    // bottom
+    px[half+x] = img.width - 1 - px[x];
+    py[half+x] = img.height;
   }
   
-  // a lookup table because sqrt is slow.
-  for(i=0;i<numberOfPoints;++i) {
-    double dx = px[i] - px[0];
-    double dy = py[i] - py[0];
-    lengths[i] = Math.floor( Math.sqrt(dx*dx+dy*dy) );
+  for(int y=0;y<pointsHigh;++y) {
+    // right
+    int y2 = pointsWide+y;
+    px[y2] = img.width-1;
+    py[y2] = img.height * (y/pointsHigh);
+    // left
+    px[half+y2] = 0;
+    py[half+y2] = img.height-1 - py[y2];
   }
 }
 
@@ -183,7 +167,7 @@ void drawLine() {
       if(nextPoint==i) continue;
       double dx = px[nextPoint] - px[i];
       double dy = py[nextPoint] - py[i];
-      double len = lengths[j];//Math.floor( Math.sqrt(dx*dx+dy*dy) );
+      double len = Math.floor( Math.sqrt(dx*dx+dy*dy) );
       
       // measure how dark is the image under this line.
       double intensity = 0;
