@@ -6,7 +6,7 @@
 
 int pointsWide=40;
 int pointsHigh=60;
-int numberOfPoints = pointsWide * pointsHigh;
+int numberOfPoints = (pointsWide + pointsHigh)*2;
 
 // self-documenting
 int numberOfLinesToDrawPerFrame = 1;
@@ -59,24 +59,28 @@ void setup() {
   
   int half = numberOfPoints/2;
   
+  println("setup a");
   for(int x=0;x<pointsWide;++x) {
     // top
-    px[     x] = img.width*(x/pointsWide);
+    px[     x] = (float)img.width*(float)x/(float)pointsWide;
     py[     x] = 0;
     // bottom
     px[half+x] = img.width - 1 - px[x];
     py[half+x] = img.height;
   }
   
+  println("setup b");
   for(int y=0;y<pointsHigh;++y) {
     // right
     int y2 = pointsWide+y;
     px[y2] = img.width-1;
-    py[y2] = img.height * (y/pointsHigh);
+    py[y2] = (float)img.height * (float)y/(float)pointsHigh;
     // left
     px[half+y2] = 0;
     py[half+y2] = img.height-1 - py[y2];
   }
+  
+  println("setup done");
 }
 
 
@@ -111,6 +115,8 @@ void previewPointOrder() {
   delay(20);
   
   previewPoint++;
+  
+  println( previewPoint +" of "+numberOfPoints );
 }
 
 
