@@ -86,11 +86,11 @@ class Octree {
       n.r=(int)((float)n.r / (float)n.count+0.5);
       n.g=(int)((float)n.g / (float)n.count+0.5);
       n.b=(int)((float)n.b / (float)n.count+0.5);
-      println(n.count
-              +"\t"+n.r
-              +"\t"+n.g
-              +"\t"+n.b
-              );
+      println("palette "+n.count
+              +"("+n.r
+              +","+n.g
+              +","+n.b
+              +")");
     }
     
     return root;
