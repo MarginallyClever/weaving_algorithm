@@ -7,7 +7,7 @@
 // points around the circle
 final int numberOfPoints = 200;
 // self-documenting
-final int numberOfLinesToDrawPerFrame = 1;
+final int numberOfLinesToDrawPerFrame = 5;
 // how thick are the threads?
 final float lineWeight = 1.2;  // default 1
 final float stringAlpha = 48; // 0...255 with 0 being totally transparent.
@@ -19,12 +19,11 @@ final int upScale=3;
 // convenience colors.  RGBA. 
 // Alpha is how dark is the string being added.  1...255 smaller is lighter.
 // Messing with the alpha value seems to make a big difference!
-final color white = color(255, 255, 255,stringAlpha);
-final color black = color(0, 0, 0,stringAlpha);
-final color blue = color(0, 0, 255,stringAlpha);
-final color green = color(0, 255, 0,stringAlpha);
-final color yellow = color(255, 255, 0,stringAlpha);
-final color red = color(255, 0, 0,stringAlpha);
+final color white   = color(255, 255, 255,stringAlpha);
+final color black   = color(  0,   0,   0,stringAlpha);
+final color cyan    = color(  0, 255, 255,stringAlpha);
+final color magenta = color(255,   0,   0,stringAlpha);
+final color yellow  = color(255, 255,   0,stringAlpha);
 
 //------------------------------------------------------
 
@@ -104,6 +103,8 @@ Octree tree = new Octree();
 // image user wants converted
 PImage quantizedImage;
 
+PImage sobelImage;
+
 // place to store visible progress fo weaving.
 // also used for finding next best thread.
 PGraphics dest; 
@@ -162,8 +163,16 @@ void inputSelected(File selection) {
   
   // resize to fill window
   img.resize(width*upScale,width*upScale);
-
+  img.loadPixels();
+  
   quantizedImage = img.copy();
+  sobelImage = img.copy();
+  sobelFilter(img,sobelImage);
+  sobelImage.filter(BLUR,2);
+  sobelImage.filter(BLUR,2);
+  sobelImage.loadPixels();
+  
+  precalculateDistances(sobelImage);
   
   dest = createGraphics(img.width,img.height);
   
@@ -177,7 +186,7 @@ void inputSelected(File selection) {
 
   // find the size of the circle and calculate the points around the edge.
   diameter = ( img.width > img.height ) ? img.height : img.width;
-  float radius = diameter/2;
+  float radius = (diameter/2)-1;
   
   center=height*(float)upScale/2.0f;
 
@@ -199,8 +208,9 @@ void inputSelected(File selection) {
   {
     threads.add(startNewWeavingThread(white,"white"));
     threads.add(startNewWeavingThread(black,"black"));
-    //threads.add(startNewWeavingThread(red,"red"));
-    //threads.add(startNewWeavingThread(blue,"blue"));
+    //threads.add(startNewWeavingThread(cyan,"cyan"));
+    //threads.add(startNewWeavingThread(magenta,"magenta"));
+    //threads.add(startNewWeavingThread(yellow,"yellow"));
     //threads.add(startNewWeavingThread(color(237, 180, 168),"pink"));
   }/* else {
     while(tree.heap.size()>0) {
@@ -278,6 +288,7 @@ void keyReleased() {
   if(key=='1') showImage=0;
   if(key=='2') showImage=1;
   if(key=='3') showImage=2;
+  if(key=='4') showImage=3;
   
   println(key);
 }
@@ -288,6 +299,7 @@ void draw() {
   // if we aren't done
   if (!finished) {
     if (!paused) {
+      dest.loadPixels();
       BestResult[] br = new BestResult[threads.size()];
       
       // draw a few at a time so it looks interactive.
@@ -306,7 +318,7 @@ void draw() {
           }
         }
         if(v>0) {
-          println("v=+23"+v+" moveover="+moveOver);
+          println("v="+v+" moveover="+moveOver);
           moveOver++;
           if(moveOver==numberOfPoints) {
             // finished!    
@@ -319,7 +331,7 @@ void draw() {
             }
           }
         } else {
-          println("v="+v);
+          //println("v="+v);
           moveOver=0;
           // draw that best line.
           drawLine(threads.get(best),br[best].bestStart,br[best].bestEnd);
@@ -336,6 +348,7 @@ void draw() {
   case 0: image(dest, 0, 0, width, height); break;
   case 1: image(img , 0, 0, width, height); break;
   case 2: image(quantizedImage, 0, 0, width, height); break;
+  case 3: image(sobelImage, 0, 0, width, height); break;
   } 
   drawProgressBar();
 }
@@ -510,15 +523,17 @@ float scoreLine(int startPoint,int endPoint,WeavingThread wt) {
   float errorBefore=0;
   float errorAfter=0;
 
+  int w = img.width;
   for(float i=0; i<N; i++) {
     float iN = i/N; 
     int px = (int)(sx + dx * iN);
     int py = (int)(sy + dy * iN);
+    int addr = py*w + px;
     
     // color of original picture
-    color original = img.get(px,py);
+    color original = img.pixels[addr];
     // color of weave so far
-    color current = dest.get(px,py);
+    color current = dest.pixels[addr];
     // color of weave if changed by the thread in question.
     color newest = lerpColor(current,cc,ccAlpha);
     
@@ -527,13 +542,17 @@ float scoreLine(int startPoint,int endPoint,WeavingThread wt) {
     // how wrong will dest be with the new thread?
     float newError = scoreColors(original,newest );
 
-    // make pixels in the center more important than pixels on the edge.
-    float cx = px-center;
-    float cy = py-center;
-    // square of distance
-    float cd = (cx*cx + cy*cy);
+    float numerator = 1.0;
+    color sobelColor = sobelImage.pixels[addr];//*
+    float sobelx = red(sobelColor)/255.0;
+    float sobely = blue(sobelColor)/255.0;
+    float sobelz = green(sobelColor);
+    float dot = abs(sobelx + sobely);
+    numerator = (1.0+dot);//*/
+    float cd = pow(sobelz,3);
+    
     // make sure we can't have a divide by zero.
-    float r = 1.0 / (1.0 + cd);
+    float r = numerator / (0.01+cd);
     //float r = 1.0; 
     
     errorBefore += oldError * r;
