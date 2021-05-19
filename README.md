@@ -1,8 +1,6 @@
 # Weaving Algorithm #
 
-http://www.marginallyclever.com/
-
-A Processing 3 sketch to generate a weaving pattern that resembles a source image.
+A Processing 3 sketch to generate a weaving pattern that resembles a source image.  Made by the good people at http://www.marginallyclever.com/
 
 Essentially, 
 
@@ -32,4 +30,3 @@ Please join us on Discord: https://discord.gg/rkbZ788hUw
 ## Misc ##
 
 This file was downloaded from https://github.com/MarginallyClever/weaving_algorithm
-This file was last updated 2019-02-25
