@@ -24,6 +24,9 @@ final color black   = color(  0,   0,   0,stringAlpha);
 final color cyan    = color(  0, 255, 255,stringAlpha);
 final color magenta = color(255,   0,   0,stringAlpha);
 final color yellow  = color(255, 255,   0,stringAlpha);
+final color red     = color(255,   0,   0,stringAlpha);
+final color green   = color(  0, 255,   0,stringAlpha);
+final color blue    = color(  0,   0, 255,stringAlpha);
 
 //------------------------------------------------------
 
@@ -98,7 +101,7 @@ float [] lengths = new float[numberOfPoints];
 // image user wants converted
 PImage img;
 
-Octree tree = new Octree();
+//Octree tree = new Octree();
 
 // image user wants converted
 PImage quantizedImage;
@@ -142,6 +145,14 @@ void setup() {
   selectInput("Select an image file","inputSelected");
 }
 
+void cropImageToSquare() {
+  if(img.height<img.width) {
+    img = img.get(0,0,img.height, img.height);
+  } else {
+    img = img.get(0,0,img.width, img.width);
+  }
+}
+
 
 void inputSelected(File selection) {
   if(selection == null) {
@@ -149,20 +160,12 @@ void inputSelected(File selection) {
     return;
   }
   
-  // load the image
-  //img = loadImage("cropped.jpg");
-  //img = loadImage("unnamed.jpg");
   img = loadImage(selection.getAbsolutePath());
-  
-  // crop image to square
-  if(img.height<img.width) {
-    img = img.get(0,0,img.height, img.height);
-  } else {
-    img = img.get(0,0,img.width, img.width);
-  }
+  cropImageToSquare();
   
   // resize to fill window
   img.resize(width*upScale,width*upScale);
+
   img.loadPixels();
   
   quantizedImage = img.copy();
@@ -172,12 +175,12 @@ void inputSelected(File selection) {
   sobelImage.filter(BLUR,2);
   sobelImage.loadPixels();
   
-  precalculateDistances(sobelImage);
+  precalculateDistances(sobelImage,width*upScale/6);
   
   dest = createGraphics(img.width,img.height);
   
   // the last number is the number of colors in the final palette.
-  tree.quantize(quantizedImage,5);
+  //tree.quantize(quantizedImage,5);
   
   setBackgroundColor();
   
@@ -208,10 +211,9 @@ void inputSelected(File selection) {
   {
     threads.add(startNewWeavingThread(white,"white"));
     threads.add(startNewWeavingThread(black,"black"));
-    //threads.add(startNewWeavingThread(cyan,"cyan"));
-    //threads.add(startNewWeavingThread(magenta,"magenta"));
-    //threads.add(startNewWeavingThread(yellow,"yellow"));
-    //threads.add(startNewWeavingThread(color(237, 180, 168),"pink"));
+    threads.add(startNewWeavingThread(cyan,"cyan"));
+    threads.add(startNewWeavingThread(magenta,"magenta"));
+    threads.add(startNewWeavingThread(yellow,"yellow"));
   }/* else {
     while(tree.heap.size()>0) {
       OctreeNode n = tree.heap.remove(0);
@@ -225,7 +227,7 @@ void inputSelected(File selection) {
 
 
 void setBackgroundColor() {
-  float r=0,g=0,b=0;
+  float r=255,g=255,b=255;
   /*
   // find average color of image
   float size=img.width*img.height;
@@ -239,7 +241,6 @@ void setBackgroundColor() {
   r/=size;
   g/=size;
   b/=size;
-  */
   
   if(tree.heap.size()>0) {
     OctreeNode n = tree.heap.remove(tree.heap.size()-1);
@@ -247,6 +248,7 @@ void setBackgroundColor() {
     g=n.g;
     b=n.b;
   }
+  */
   
   dest.beginDraw();
   dest.background(r,g,b);

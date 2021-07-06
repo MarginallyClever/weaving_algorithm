@@ -46,7 +46,7 @@ void sobelFilter(PImage src,PImage dest) {
 
 // calculate the distance from the center of the image.  Store it as a value 0...255 in the green channel
 // assumes the image is square
-void precalculateDistances(PImage dest) {
+void precalculateDistances(PImage dest,float innerCircle) {
   int w = img.width;
   int center = w/2;
   float maxd = sqrt(sq(center)*2);
@@ -56,6 +56,8 @@ void precalculateDistances(PImage dest) {
       int addr=(y*w)+x;
       color c = dest.pixels[addr];
       float d = sqrt(sq(x-center)+sq(y-center));
+      //d = max(d-innerCircle,0);
+      d = d<innerCircle?0:d;
       int green = (int)floor(255.0*d/maxd);
       dest.pixels[addr] = color(red(c),green,blue(c));
     }
