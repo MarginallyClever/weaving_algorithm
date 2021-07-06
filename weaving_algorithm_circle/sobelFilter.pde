@@ -50,13 +50,17 @@ void precalculateDistances(PImage dest) {
   int w = img.width;
   int center = w/2;
   float maxd = sqrt(sq(center)*2);
+  float N = 0.4; 
+  int centerx=800 , centery=800; // This variables act as a center value in image. Change them according to the picture you use.
+
   
   for(int y=0;y<img.height;y++) {
     for(int x=0;x<w;x++) {
       int addr=(y*w)+x;
       color c = dest.pixels[addr];
-      float d = sqrt(sq(x-center)+sq(y-center));
+      float d = sqrt(sq(x-centerx)+sq(y-centery));
       int green = (int)floor(255.0*d/maxd);
+      green = (d/maxd> N?green:0); 
       dest.pixels[addr] = color(red(c),green,blue(c));
     }
   }
