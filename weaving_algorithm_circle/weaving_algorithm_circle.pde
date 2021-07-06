@@ -175,7 +175,12 @@ void inputSelected(File selection) {
   sobelImage.filter(BLUR,2);
   sobelImage.loadPixels();
   
-  precalculateDistances(sobelImage,width*upScale/6);
+  precalculateDistances(
+    sobelImage,
+    0.4,  // low pass filter (hard edge of green circle)
+    sobelImage.width/2,  // center of circle x
+    sobelImage.height/2);  // center of circle y
+  
   
   dest = createGraphics(img.width,img.height);
   
