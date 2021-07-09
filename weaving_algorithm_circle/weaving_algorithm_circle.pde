@@ -145,6 +145,7 @@ void setup() {
   selectInput("Select an image file","inputSelected");
 }
 
+
 void cropImageToSquare() {
   if(img.height<img.width) {
     img = img.get(0,0,img.height, img.height);
@@ -192,21 +193,12 @@ void inputSelected(File selection) {
   // smash the image to grayscale
   //img.filter(GRAY);
 
-  // find the size of the circle and calculate the points around the edge.
-  diameter = ( img.width > img.height ) ? img.height : img.width;
-  float radius = (diameter/2)-1;
-  
   center=height*(float)upScale/2.0f;
 
-  int i;
-  for (i=0; i<numberOfPoints; ++i) {
-    float d = PI * 2.0 * i/(float)numberOfPoints;
-    px[i] = img.width /2 + cos(d) * radius;
-    py[i] = img.height/2 + sin(d) * radius;
-  }
+  setupNailPositions();
 
   // a lookup table because sqrt is slow.
-  for (i=0; i<numberOfPoints; ++i) {
+  for(int i=0; i<numberOfPoints; ++i) {
     float dx = px[i] - px[0];
     float dy = py[i] - py[0];
     lengths[i] = sqrt(dx*dx+dy*dy);
@@ -216,9 +208,9 @@ void inputSelected(File selection) {
   {
     threads.add(startNewWeavingThread(white,"white"));
     threads.add(startNewWeavingThread(black,"black"));
-    threads.add(startNewWeavingThread(cyan,"cyan"));
-    threads.add(startNewWeavingThread(magenta,"magenta"));
-    threads.add(startNewWeavingThread(yellow,"yellow"));
+    //threads.add(startNewWeavingThread(cyan,"cyan"));
+    //threads.add(startNewWeavingThread(magenta,"magenta"));
+    //threads.add(startNewWeavingThread(yellow,"yellow"));
   }/* else {
     while(tree.heap.size()>0) {
       OctreeNode n = tree.heap.remove(0);
@@ -228,6 +220,65 @@ void inputSelected(File selection) {
   }*/
   startTime=millis();
   ready=true;
+}
+
+
+void setupNailPositions() {
+  //setupNailPositionsInARectangleClockwise();
+  setupNailPositionsInACircle();
+}
+
+
+void setupNailPositionsInARectangleClockwise() {
+  println("Square design");
+  float borderLength = img.width*2 + img.height*2;
+  float betweenNails = borderLength / numberOfPoints;
+  float half = betweenNails/2;
+  
+  int i=0;
+  // top
+  float y=1;
+  float x;
+  for(x=half; x<img.width; x+=betweenNails) {
+    px[i]=x;
+    py[i]=y;
+    ++i;
+  }
+  // right
+  x = img.width-1;
+  for(y=half; y<img.height; y+=betweenNails) {
+    px[i]=x;
+    py[i]=y;
+    ++i;
+  }
+  // bottom
+  y = img.height-1;
+  for(x=img.width-half; x>0; x-=betweenNails) {
+    px[i]=x;
+    py[i]=y;
+    ++i;
+  }
+  // left
+  x = 1;
+  for(y=img.height-half; y>0; y-=betweenNails) {
+    px[i]=x;
+    py[i]=y;
+    ++i;
+  }
+}
+
+
+void setupNailPositionsInACircle() {
+  println("Circle design");
+  // find the size of the circle and calculate the points around the edge.
+  diameter = ( img.width > img.height ) ? img.height : img.width;
+  float radius = (diameter/2)-1;
+  
+  for(int i=0; i<numberOfPoints; ++i) {
+    float d = PI * 2.0 * i/(float)numberOfPoints;
+    px[i] = img.width /2 + cos(d) * radius;
+    py[i] = img.height/2 + sin(d) * radius;
+  }
 }
 
 
