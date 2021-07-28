@@ -439,7 +439,6 @@ void drawProgressBar() {
   line(10, 5, (width-10)*percent, 5);
 }
 
-
 // stop drawing and ask user where (if) to save CSV.
 void calculationFinished() {
   if(finished) return;
