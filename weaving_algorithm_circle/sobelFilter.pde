@@ -46,7 +46,7 @@ void sobelFilter(PImage src,PImage dest) {
 
 // calculate the distance from the center of the image.  Store it as a value 0...255 in the green channel
 // assumes the image is square
-void precalculateDistances(PImage dest,float lowpass,float cx,float cy) {
+void sobelPrecalculateDistances(PImage dest,float lowpass,float cx,float cy) {
   int w = img.width;
   int center = w/2;
   float maxd = sqrt(sq(center)*2);

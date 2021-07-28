@@ -133,6 +133,8 @@ public char [] done = new char[numberOfPoints*numberOfPoints];
 // cannot be more than this number.
 final int totalLinesToDraw=(int)(sq(numberOfPoints-skipNeighbors*2)/2);
 
+Octree tree = new Octree();
+
 //------------------------------------------------------
 
 // run once on start.
@@ -162,43 +164,44 @@ void inputSelected(File selection) {
   
   img = loadImage(selection.getAbsolutePath());
   cropImageToSquare();
-  
-  // resize to fill window
-  img.resize(width*upScale,width*upScale);
-
+  resizeImageToFillWindow();
   img.loadPixels();
   
+  center = height*(float)upScale/2.0f;
+  dest = createGraphics(img.width,img.height);
+  
+  runSobelFilter();
+
   quantizedImage = img.copy();
+  tree.quantize(quantizedImage,5);
+
+  setBackgroundColor();
+  setupNailPositions();
+  buildTableOfStringLengths();
+  setupThreadsToUse();  
+  startTime=millis();
+  ready=true;
+}
+
+void resizeImageToFillWindow() {
+  img.resize(width*upScale,width*upScale);
+}
+
+void runSobelFilter() {
   sobelImage = img.copy();
   sobelFilter(img,sobelImage);
   sobelImage.filter(BLUR,2);
   sobelImage.filter(BLUR,2);
   sobelImage.loadPixels();
   
-  precalculateDistances(
+  sobelPrecalculateDistances(
     sobelImage,
     0.4,  // low pass filter (hard edge of green circle)
     sobelImage.width/2,  // center of circle x
     sobelImage.height/2);  // center of circle y
-  
-  dest = createGraphics(img.width,img.height);
-  
-  setBackgroundColor();
-  
-  // smash the image to grayscale
-  //img.filter(GRAY);
+}
 
-  center=height*(float)upScale/2.0f;
-
-  setupNailPositions();
-
-  // a lookup table because sqrt is slow.
-  for(int i=0; i<numberOfPoints; ++i) {
-    float dx = px[i] - px[0];
-    float dy = py[i] - py[0];
-    lengths[i] = sqrt(dx*dx+dy*dy);
-  }
-  
+void setupThreadsToUse() {
   //if(tree.heap.size()==0) 
   {
     threads.add(startNewWeavingThread(white,"white"));
@@ -213,8 +216,15 @@ void inputSelected(File selection) {
       threads.add(startNewWeavingThread(c,n.r+","+n.g+","+n.b));
     }
   }*/
-  startTime=millis();
-  ready=true;
+}
+
+void buildTableOfStringLengths() {
+  // a lookup table because sqrt is slow.
+  for(int i=0; i<numberOfPoints; ++i) {
+    float dx = px[i] - px[0];
+    float dy = py[i] - py[0];
+    lengths[i] = sqrt(dx*dx+dy*dy);
+  }
 }
 
 
@@ -279,6 +289,7 @@ void setupNailPositionsInACircle() {
 
 void setBackgroundColor() {
   //setBackgroundColorToImageAverage();
+  //setBackgroundColorToImageQuantizeAverage();
   setBackgroundColorTo(white);
 }
 
@@ -302,17 +313,15 @@ void setBackgroundColorToImageAverage() {
   r/=size;
   g/=size;
   b/=size;
+  setBackgroundColorTo(color(r,g,b));
+}
 
-  // the last number is the number of colors in the final palette.
-  Octree tree = new Octree();
-  tree.quantize(quantizedImage,1);
+void setBackgroundColorToImageQuantizeAverage() {
   if(tree.heap.size()>0) {
     OctreeNode n = tree.heap.remove(tree.heap.size()-1);
-    r=n.r;
-    g=n.g;
-    b=n.b;
+    setBackgroundColorTo(color(n.r,n.g,n.b));
   }
-  setBackgroundColorTo(color(r,g,b));
+  // doesn't get set here?
 }
 
 // setup a new WeavingThread and place it on the best pair of nails.
@@ -350,6 +359,7 @@ void keyReleased() {
   if(key=='2') showImage=1;
   if(key=='3') showImage=2;
   if(key=='4') showImage=3;
+  if(key=='5') showImage=4;
   
   println(key);
 }
@@ -410,6 +420,7 @@ void draw() {
   case 1: image(img , 0, 0, width, height); break;
   case 2: image(quantizedImage, 0, 0, width, height); break;
   case 3: image(sobelImage, 0, 0, width, height); break;
+  case 4: calculationFinished();  break;
   } 
   drawProgressBar();
 }
@@ -432,7 +443,6 @@ void drawProgressBar() {
 // stop drawing and ask user where (if) to save CSV.
 void calculationFinished() {
   if(finished) return;
-  
   finished=true;
   
   long endTime=millis();
