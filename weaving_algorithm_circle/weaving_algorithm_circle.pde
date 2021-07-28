@@ -101,7 +101,6 @@ float [] lengths = new float[numberOfPoints];
 // image user wants converted
 PImage img;
 
-//Octree tree = new Octree();
 
 // image user wants converted
 PImage quantizedImage;
@@ -182,11 +181,7 @@ void inputSelected(File selection) {
     sobelImage.width/2,  // center of circle x
     sobelImage.height/2);  // center of circle y
   
-  
   dest = createGraphics(img.width,img.height);
-  
-  // the last number is the number of colors in the final palette.
-  //tree.quantize(quantizedImage,5);
   
   setBackgroundColor();
   
@@ -283,8 +278,18 @@ void setupNailPositionsInACircle() {
 
 
 void setBackgroundColor() {
-  float r=255,g=255,b=255;
-  /*
+  //setBackgroundColorToImageAverage();
+  setBackgroundColorTo(white);
+}
+
+void setBackgroundColorTo(color c) {
+  dest.beginDraw();
+  dest.background(c);
+  dest.endDraw();
+}
+
+void setBackgroundColorToImageAverage() {
+  float r=0,g=0,b=0;
   // find average color of image
   float size=img.width*img.height;
   int i;
@@ -297,20 +302,18 @@ void setBackgroundColor() {
   r/=size;
   g/=size;
   b/=size;
-  
+
+  // the last number is the number of colors in the final palette.
+  Octree tree = new Octree();
+  tree.quantize(quantizedImage,1);
   if(tree.heap.size()>0) {
     OctreeNode n = tree.heap.remove(tree.heap.size()-1);
     r=n.r;
     g=n.g;
     b=n.b;
   }
-  */
-  
-  dest.beginDraw();
-  dest.background(r,g,b);
-  dest.endDraw();
+  setBackgroundColorTo(color(r,g,b));
 }
-
 
 // setup a new WeavingThread and place it on the best pair of nails.
 WeavingThread startNewWeavingThread(color c,String name) {
