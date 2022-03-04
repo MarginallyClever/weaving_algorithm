@@ -51,6 +51,8 @@ void sobelPrecalculateDistances(PImage dest,float lowpass,float cx,float cy) {
   int center = w/2;
   float maxd = sqrt(sq(center)*2);
   
+  sobelImage.loadPixels();
+  
   for(int y=0;y<img.height;y++) {
     float dy2 = sq(y-cy);
     for(int x=0;x<w;x++) {
@@ -63,4 +65,6 @@ void sobelPrecalculateDistances(PImage dest,float lowpass,float cx,float cy) {
       dest.pixels[addr] = color(red(c),green,blue(c));
     }
   }
+  
+  sobelImage.updatePixels();
 }
