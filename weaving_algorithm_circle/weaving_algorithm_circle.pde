@@ -101,8 +101,6 @@ float [] lengths = new float[numberOfPoints];
 // image user wants converted
 PImage img;
 
-
-// image user wants converted
 PImage quantizedImage;
 
 PImage sobelImage;
@@ -131,7 +129,7 @@ float center;
 public char [] done = new char[numberOfPoints*numberOfPoints];
 
 // cannot be more than this number.
-final int totalLinesToDraw=(int)(sq(numberOfPoints-skipNeighbors*2)/2);
+final int totalLinesToDraw=500;//(int)(sq(numberOfPoints-skipNeighbors*2)/2);
 
 Octree tree = new Octree();
 
@@ -192,7 +190,6 @@ void runSobelFilter() {
   sobelFilter(img,sobelImage);
   sobelImage.filter(BLUR,2);
   sobelImage.filter(BLUR,2);
-  sobelImage.loadPixels();
   
   sobelPrecalculateDistances(
     sobelImage,
@@ -374,12 +371,12 @@ void draw() {
       BestResult[] br = new BestResult[threads.size()];
       
       // draw a few at a time so it looks interactive.
-      for(int i=0; i<numberOfLinesToDrawPerFrame; ++i) {
+      for(int i=0;i<numberOfLinesToDrawPerFrame;++i) {
         // find the best thread for each color
         for(int j=0;j<threads.size();++j) {
           br[j]=findBest(threads.get(j));
         }
-        // of the threads tested, which is best?  The one with the lowest score.
+        // The thread with the lowest score is best.
         float v = br[0].bestValue;
         int best = 0;
         for(int j=1;j<threads.size();++j) {
@@ -392,7 +389,8 @@ void draw() {
           println("v="+v+" moveover="+moveOver);
           moveOver++;
           if(moveOver==numberOfPoints) {
-            // finished!    
+            println("all possiblities exhausted.");
+            // finished!
             calculationFinished();
           } else {
             // the best line is actually making the picture WORSE.
@@ -408,6 +406,12 @@ void draw() {
           drawLine(threads.get(best),br[best].bestStart,br[best].bestEnd);
         }
       }
+      dest.updatePixels();
+      
+      if(totalLinesDrawn >= totalLinesToDraw) {
+        calculationFinished();
+      } 
+      
       if (singleStep) paused=true;
     }
   } else {
