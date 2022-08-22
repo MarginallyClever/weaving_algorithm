@@ -9,11 +9,13 @@ final int numberOfPoints = 200;
 // self-documenting
 final int numberOfLinesToDrawPerFrame = 5;
 // how thick are the threads?
-final float lineWeight = 1.2;  // default 1
+final float lineWeight = 1.2;  // mm.  Default 1
 final float stringAlpha = 48; // 0...255 with 0 being totally transparent.
-// ignore N nearest neighbors to this starting point
+// On any given step from nail N it checks lines from N+skipNeighbors all the way around to N-skipNeighbors 
+// for the one with the most impact. It does this for all colors. The one with the most 
+// impact (improving the result) is the winner.
 final int skipNeighbors=20;
-// make picture bigger than what is visible for more accuracy
+// supersample the image for more accuracy.  more samples will also slow the calculation.
 final int upScale=3;
 
 // convenience colors.  RGBA. 
