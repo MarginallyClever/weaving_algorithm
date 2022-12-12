@@ -18,8 +18,8 @@ Special thanks for great ideas from https://github.com/ericheisler/AutomatedArt
 
 ## TO RUN ##
 
-- Have Processing 3 installed.
-- Open the sketch in Processing.
+- Have Processing 3 installed from https://processing.org/download
+- Open this code as a sketch in Processing.
 - run the sketch.
 - Click with the mouse on the screen to pause/unpause.  (this way you can pause,copy/paste the - output from the log window, and continue)
 
