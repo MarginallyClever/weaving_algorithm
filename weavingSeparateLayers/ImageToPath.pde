@@ -10,28 +10,35 @@ class ImageToPath {
   PImage croppedImg;
   PGraphics pathImg;
   boolean paused=false;
+  int minimumErrorLimit = 1;
+  int minimumLineLength = 10;
+  color filterColor;
   
 
-  ImageToPath(int numNails,int diameter) {
+  public ImageToPath(int numNails,int diameter) {
     this.numNails = numNails;
     createNails(diameter/2f);
     
     pathImg = createGraphics(diameter,diameter);
     pathImg.beginDraw();
-    pathImg.background(0);
+    pathImg.background(0,0,0,0);
     pathImg.endDraw();
   }
   
-  void begin(PImage image,int startNailIndex,int intensity) {
+  public void begin(PImage image,int startNailIndex,int intensity,color filterColor) {
     croppedImg = image;
+    this.filterColor = filterColor;
     this.intensity = intensity;
     nailPath.clear();
     visitedPaths.clear();
     currentNailIndex = startNailIndex;
     nailPath.add(startNailIndex);
+    pathImg.beginDraw();
+    pathImg.background(red(filterColor),green(filterColor),blue(filterColor),0);
+    pathImg.endDraw();
   }
   
-  void drawNails() {
+  public void drawNails() {
     fill(255);
     stroke(255);
     // Draw the "nails" around the edge of the image
@@ -41,18 +48,17 @@ class ImageToPath {
   }
   
   // draw the entire path
-  void drawPath() {
+  public void drawPath() {
     if(pathImg ==null) return;
     image(pathImg,0,0);
   }
   
-  void recalculatePathImage() {    
+  public void recalculatePathImage() {    
     pathImg.beginDraw();
-    pathImg.background(0);
+    pathImg.background(0,0,0,0);
     pathImg.noFill();
-    pathImg.stroke(intensity,intensity,intensity);
+    pathImg.stroke(filterColor);
     pathImg.strokeWeight(1.1);
-    pathImg.blendMode(ADD);
     
     for (int i = 0; i < nailPath.size() - 1; i++) {
       int nail1Index = nailPath.get(i);
@@ -65,22 +71,19 @@ class ImageToPath {
     pathImg.endDraw();
   }
   
-  void drawAddedPath() {
-    int i = nailPath.size()-2;
-    int nail1Index = nailPath.get(i);
-    int nail2Index = nailPath.get(i + 1);
-    PVector nail1 = nails[nail1Index];
-    PVector nail2 = nails[nail2Index];
+  public void drawAddedPath(int nextNailIndex) {
+    PVector nail1 = nails[currentNailIndex];
+    PVector nail2 = nails[nextNailIndex];
 
     pathImg.beginDraw();
     pathImg.noFill();
-    pathImg.stroke(intensity,intensity,intensity);
+    pathImg.stroke(filterColor);
     pathImg.blendMode(ADD);
     pathImg.line(nail1.x, nail1.y, nail2.x, nail2.y);
     pathImg.endDraw();
   }
   
-  void createNails(float radius) {
+  public void createNails(float radius) {
     float r = radius-5;
     
     // Create an array of "nails" in a circle around the edge of the image
@@ -93,25 +96,31 @@ class ImageToPath {
     }
   }
   
-  int getRed(PImage img,int x,int y) {
+  private int getRed(PImage img,int x,int y) {
     color pixelColor = img.get(x, y);
     return (pixelColor >> 16) & 0xFF; // Extract the red channel
   }
   
-  int pixelError(int x,int y) {
-    int a = getRed(croppedImg, x, y);
-    int b = intensity;//getRed(img, x, y);
-    return abs(b-a);
+  private int pixelError(int x,int y) {
+    //int a = getRed(croppedImg, x, y);
+    //int b = intensity;//getRed(img, x, y);
+    //return a-b;
+    return getRed(croppedImg,x,y);
   }
   
+  /**
+   * Slow but easy to read version of lineError
+   */
   @Deprecated
-  int lineError1(PVector nail1, PVector nail2) {
+  private int lineError1(PVector nail1, PVector nail2) {
     int sumRed = 0;
   
     float deltaX = abs(nail2.x - nail1.x);
     float deltaY = abs(nail2.y - nail1.y);
     int numSteps = int(max(deltaX, deltaY));
   
+    if(numSteps<minimumLineLength) return 0;
+    
     for (int i = 0; i <= numSteps; i++) {
       float t = float(i) / float(numSteps);
       float x = lerp(nail1.x, nail2.x, t);
@@ -123,10 +132,13 @@ class ImageToPath {
       }
     }
   
-    return sumRed;
+    return sumRed/numSteps;
   }
   
-  int lineError(PVector nail1, PVector nail2) {
+  /**
+   * Uses Bresenham's line algorithm to move over the image faster.
+   */
+  private int lineError(PVector nail1, PVector nail2) {
     int error = 0;
   
     int x0 = int(nail1.x);
@@ -141,12 +153,14 @@ class ImageToPath {
     int sy = y0 < y1 ? 1 : -1;
   
     int err = dx - dy;
-  
+    int count = 0;
+    
     while (true) {
       // Ensure the coordinates are within the image bounds
-      if (x0 >= 0 && x0 < croppedImg.width && y0 >= 0 && y0 < croppedImg.height) {
+      //if (x0 >= 0 && x0 < croppedImg.width && y0 >= 0 && y0 < croppedImg.height) {
         error += pixelError(x0,y0);
-      }
+        ++count;
+      //}
   
       if (x0 == x1 && y0 == y1) {
         break;
@@ -164,12 +178,13 @@ class ImageToPath {
         y0 += sy;
       }
     }
-  
-    return error;
+    if(count<minimumLineLength) return 0;
+    
+    return error/count;
   }
 
   
-  int[] findBestFitChannelPair() {
+  public int[] findBestFitChannelPair() {
     int maxLineError = -1;
     int[] nailPair = new int[2];
   
@@ -184,7 +199,7 @@ class ImageToPath {
     return nailPair;
   }
   
-  int [] findBestFitChannelFromNail(int i) {
+  private int [] findBestFitChannelFromNail(int i) {
     int maxLineError = -1;
     int bestNail = -1;
     
@@ -200,7 +215,7 @@ class ImageToPath {
     return new int[] {bestNail,maxLineError};
   }
   
-  void subtractIntensityBetweenNails(PVector nail1, PVector nail2, int intensity) {
+  private void subtractIntensityBetweenNails(PVector nail1, PVector nail2, int intensity) {
     int x0 = int(nail1.x);
     int y0 = int(nail1.y);
     int x1 = int(nail2.x);
@@ -244,7 +259,8 @@ class ImageToPath {
     }
   }
   
-  int findNextNail(int startNailIndex, int intensity) {
+  @Deprecated
+  private int findNextNail(int startNailIndex, int intensity) {
     int maxLineError = -1;
     int nextNailIndex = -1;
   
@@ -262,7 +278,10 @@ class ImageToPath {
     return nextNailIndex;
   }
 
-  ArrayList<Integer> buildNailPath(int startNailIndex, int intensity) {
+  /**
+   * calculate entire path in one method
+   */
+  public ArrayList<Integer> buildNailPath(int startNailIndex, int intensity) {
     this.intensity = intensity;
     nailPath.add(startNailIndex);
   
@@ -276,10 +295,13 @@ class ImageToPath {
     return nailPath;
   }
   
-  String makePathKey(int currentNailIndex,int nextNailIndex) {
+  private String makePathKey(int currentNailIndex,int nextNailIndex) {
     return currentNailIndex < nextNailIndex ? currentNailIndex + "-" + nextNailIndex : nextNailIndex + "-" + currentNailIndex;
   }
 
+  /**
+   * step-by-step version of buildNailPath
+   */
   void iterate() {
     if(croppedImg==null) return;
     if(paused) return;
@@ -289,7 +311,7 @@ class ImageToPath {
     }
   }
   
-  int findStep() {
+  private int findStep() {
     int nextNailIndex = -1;
     int maxLineError = -1;
 
@@ -306,18 +328,23 @@ class ImageToPath {
       }
     }
 
-    if (nextNailIndex == -1 || maxLineError < intensity) {
-      return -1; // No more valid paths found
-    }
+    if(nextNailIndex == -1) return -1; // No more valid paths found
+
+    //float len = getLength(currentNailIndex,nextNailIndex);
+    if(maxLineError < minimumErrorLimit) return -1;  // makes image worse, not better.
 
     subtractIntensityBetweenNails(nails[currentNailIndex], nails[nextNailIndex], intensity);
     nailPath.add(nextNailIndex);
-    drawAddedPath();
+    drawAddedPath(nextNailIndex);
 
     String pathKey = makePathKey(currentNailIndex,nextNailIndex);
     visitedPaths.add(pathKey);
 
     currentNailIndex = nextNailIndex;
     return nextNailIndex;
+  }
+  
+  float getLength(int a,int b) {
+    return dist(nails[a].x,nails[a].y,nails[b].x,nails[b].y);
   }
 }
