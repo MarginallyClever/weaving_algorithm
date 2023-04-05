@@ -4,23 +4,58 @@
 // display the result of all the strings put together.
 // 2023-04-03 dan@marginallyclever.com
 //-----------------------------------------------------------
-final int SIZE = 700;
+// number of nails around the perimeter.
+final int NUM_NAILS = 180;
+// 0...1  adjusts alpha of all strings.  lower is more transparent.
+float alphaAdjust = 0.35f;
+// 0...1 controls when to stop adding lines.  lower means more lines.
+float minimumErrorLimit = 0.09;
+// must be greater than 0.  thickness of line in path.
+float myStrokeWeight = 1.0;
 
+// do not touch these.
 PImage img;
 PGraphics circleBorder;
 ArrayList<ImageToPath> imageToPath = new ArrayList<ImageToPath>();
+color backgroundColor;
 
 void setup() {
-  size(1400, 700);  // SIZE*2,SIZE
+  // size of window
+  size(1600, 800);  // width must be height*2.
   
-  for(int i=0;i<5;++i) {
-    imageToPath.add(new ImageToPath(180,SIZE));
-  }
+  // change your color layers here.  first color will be on the bottom of the stack.
+  imageToPath.add(new ImageToPath(NUM_NAILS,height,color(0,0,0,0)));  // black
+  //imageToPath.add(new ImageToPath(NUM_NAILS,height,color(255,0,0)));  // red
+  //imageToPath.add(new ImageToPath(NUM_NAILS,height,color(0,255,0)));  // green
+  //imageToPath.add(new ImageToPath(NUM_NAILS,height,color(0,0,255)));  // blue
+  imageToPath.add(new ImageToPath(NUM_NAILS,height,color(0,255,255)));  // cyan
+  imageToPath.add(new ImageToPath(NUM_NAILS,height,color(255,0,255)));  // magenta
+  imageToPath.add(new ImageToPath(NUM_NAILS,height,color(255,255,0)));  // yellow
+  imageToPath.add(new ImageToPath(NUM_NAILS,height,color(255,255,255)));  // white
+  
+  report();
   
   createCircleBorder();
   
   // Request an image file from the user
   selectInput("Select an image file:", "imageSelected");
+}
+
+void report() {
+  println("height="+height);
+  println("NUM_NAILS="+NUM_NAILS);
+  println("alphaAdjust="+alphaAdjust);
+  println("minimumErrorLimit="+minimumErrorLimit);
+  println("myStrokeWeight="+myStrokeWeight);
+  int i=0;
+  for(ImageToPath p : imageToPath) {
+    println("layer "+i+"="+colorToString(p.channelColor));
+    ++i;
+  }
+}
+
+String colorToString(color c) {
+  return ""+red(c)+","+green(c)+","+blue(c)+","+alpha(c);
 }
 
 void imageSelected(File selection) {
@@ -30,27 +65,36 @@ void imageSelected(File selection) {
   } else {
     String filePath = selection.getAbsolutePath();
     img = loadImage(filePath);
-    img = cropAndScaleImage(img, SIZE, SIZE);
+    img = cropAndScaleImage(img, height, height);
+    backgroundColor = calculateAverageColor(img);
     
     // Crop and scale the image
-    int i=0;
-    startPath(i++,img,color(0,0,0,0),64);  // black
-    //startPath(i++,img,color(255,0,0),32);  // red
-    //startPath(i++,img,color(0,255,0),32);  // green
-    //startPath(i++,img,color(0,0,255),32);  // blue
-    startPath(i++,img,color(0,255,255),64);  // cyan
-    startPath(i++,img,color(255,0,255),64);  // magenta
-    startPath(i++,img,color(255,255,0),64);  // yellow
-    startPath(i++,img,color(255,255,255),64);  // white
+    for(ImageToPath path : imageToPath) {
+      path.begin(img);
+    }
   }
 }
 
-void startPath(int index,PImage sourceImage,color c,int alpha) {
-  PImage redChannel = generateGrayscaleImage(sourceImage,c);
-  color c2 = color(red(c),green(c),blue(c),alpha);
-  imageToPath.get(index).begin(redChannel,0,alpha,c2);
-}
+color calculateAverageColor(PImage img) {
+  float totalRed = 0;
+  float totalBlue = 0;
+  float totalGreen = 0;
+  int numPixels = img.width * img.height;
 
+  circleBorder.loadPixels();
+  img.loadPixels();
+  for (int i = 0; i < numPixels; i++) {
+    color c = img.pixels[i];
+    float v = red(circleBorder.pixels[i])/255.0f;
+    totalRed += red(c)*v;
+    totalGreen += green(c)*v;
+    totalBlue += blue(c)*v;
+  }
+
+  return color( totalRed / numPixels,
+                totalGreen / numPixels,
+                totalBlue / numPixels );
+}
 
 
 PImage cropAndScaleImage(PImage source, int targetWidth, int targetHeight) {
@@ -72,7 +116,7 @@ PImage cropAndScaleImage(PImage source, int targetWidth, int targetHeight) {
 
   PImage result = source.get(cropX, cropY, cropWidth, cropHeight);
   result.resize(targetWidth, targetHeight);
-  //PImage result = source.get(cropX, cropY, targetWidth, targetHeight);
+  result = result.get(cropX, cropY, targetWidth, targetHeight);
 
   return result;
 }
@@ -111,10 +155,10 @@ public float calculateColorSimilarity(color c1, color c2) {
 }
 
 void createCircleBorder() {
-  circleBorder = createGraphics(SIZE,SIZE);
+  circleBorder = createGraphics(height,height);
   circleBorder.beginDraw();
   circleBorder.background(0);
   circleBorder.fill(255);
-  circleBorder.circle(SIZE/2,SIZE/2,SIZE);
+  circleBorder.circle(height/2,height/2,height);
   circleBorder.endDraw();
 }

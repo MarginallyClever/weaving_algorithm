@@ -2,7 +2,7 @@ int drawMode = 0;
 int startIndex = 0;
 
 void draw() {
-  background(0);
+  background(backgroundColor);
   blendMode(BLEND);
   
   if(drawMode==0) {
@@ -57,7 +57,7 @@ void drawOneFilterColor(int index, int x,int y) {
 
 void drawCircleBorder() {
   blendMode(MULTIPLY);
-  image(circleBorder,700,0);
+  image(circleBorder,height,0);
   blendMode(BLEND);
 }
 
