@@ -7,16 +7,17 @@
 final int SIZE = 700;
 
 PImage img;
+PGraphics circleBorder;
 ArrayList<ImageToPath> imageToPath = new ArrayList<ImageToPath>();
 
 void setup() {
   size(1400, 700);  // SIZE*2,SIZE
   
-  imageToPath.add(new ImageToPath(180,SIZE));
-  imageToPath.add(new ImageToPath(180,SIZE));
-  imageToPath.add(new ImageToPath(180,SIZE));
-  imageToPath.add(new ImageToPath(180,SIZE));
-  imageToPath.add(new ImageToPath(180,SIZE));
+  for(int i=0;i<5;++i) {
+    imageToPath.add(new ImageToPath(180,SIZE));
+  }
+  
+  createCircleBorder();
   
   // Request an image file from the user
   selectInput("Select an image file:", "imageSelected");
@@ -32,11 +33,15 @@ void imageSelected(File selection) {
     img = cropAndScaleImage(img, SIZE, SIZE);
     
     // Crop and scale the image
-    startPath(0,img,color(255,255,255),32);  // white
-    startPath(1,img,color(0,0,0,0),32);  // black
-    startPath(2,img,color(255,0,0),32);  // red
-    startPath(3,img,color(0,255,0),32);  // green
-    startPath(4,img,color(0,0,255),32);  // blue
+    int i=0;
+    startPath(i++,img,color(0,0,0,0),64);  // black
+    //startPath(i++,img,color(255,0,0),32);  // red
+    //startPath(i++,img,color(0,255,0),32);  // green
+    //startPath(i++,img,color(0,0,255),32);  // blue
+    startPath(i++,img,color(0,255,255),64);  // cyan
+    startPath(i++,img,color(255,0,255),64);  // magenta
+    startPath(i++,img,color(255,255,0),64);  // yellow
+    startPath(i++,img,color(255,255,255),64);  // white
   }
 }
 
@@ -103,4 +108,13 @@ public float calculateColorSimilarity(color c1, color c2) {
   float maxDistance = dist(0, 0, 0, 255, 255, 255);
 
   return 1 - (distance / maxDistance);
+}
+
+void createCircleBorder() {
+  circleBorder = createGraphics(SIZE,SIZE);
+  circleBorder.beginDraw();
+  circleBorder.background(0);
+  circleBorder.fill(255);
+  circleBorder.circle(SIZE/2,SIZE/2,SIZE);
+  circleBorder.endDraw();
 }
