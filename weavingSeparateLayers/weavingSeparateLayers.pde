@@ -7,11 +7,15 @@
 // number of nails around the perimeter.
 final int NUM_NAILS = 180;
 // 0...1  adjusts alpha of all strings.  lower is more transparent.
-float alphaAdjust = 0.35f;
+final float alphaAdjust = 0.5f;
 // 0...1 controls when to stop adding lines.  lower means more lines.
-float minimumErrorLimit = 0.09;
+final float minimumErrorLimit = 0.09;
 // must be greater than 0.  thickness of line in path.
-float myStrokeWeight = 1.0;
+final float myStrokeWeight = 1.0;
+// skip all lines shorter than this many pixels
+final int minimumLineLength = 50;
+// anti-alias all lines.
+final int mySmooth = 1;
 
 // do not touch these.
 PImage img;
@@ -24,34 +28,19 @@ void setup() {
   size(1600, 800);  // width must be height*2.
   
   // change your color layers here.  first color will be on the bottom of the stack.
-  imageToPath.add(new ImageToPath(NUM_NAILS,height,color(0,0,0,0)));  // black
+  imageToPath.add(new ImageToPath(NUM_NAILS,height,color(255,255,255)));  // white
   //imageToPath.add(new ImageToPath(NUM_NAILS,height,color(255,0,0)));  // red
   //imageToPath.add(new ImageToPath(NUM_NAILS,height,color(0,255,0)));  // green
   //imageToPath.add(new ImageToPath(NUM_NAILS,height,color(0,0,255)));  // blue
   imageToPath.add(new ImageToPath(NUM_NAILS,height,color(0,255,255)));  // cyan
   imageToPath.add(new ImageToPath(NUM_NAILS,height,color(255,0,255)));  // magenta
   imageToPath.add(new ImageToPath(NUM_NAILS,height,color(255,255,0)));  // yellow
-  imageToPath.add(new ImageToPath(NUM_NAILS,height,color(255,255,255)));  // white
-  
-  report();
+  imageToPath.add(new ImageToPath(NUM_NAILS,height,color(0,0,0,0)));  // black
   
   createCircleBorder();
   
   // Request an image file from the user
   selectInput("Select an image file:", "imageSelected");
-}
-
-void report() {
-  println("height="+height);
-  println("NUM_NAILS="+NUM_NAILS);
-  println("alphaAdjust="+alphaAdjust);
-  println("minimumErrorLimit="+minimumErrorLimit);
-  println("myStrokeWeight="+myStrokeWeight);
-  int i=0;
-  for(ImageToPath p : imageToPath) {
-    println("layer "+i+"="+colorToString(p.channelColor));
-    ++i;
-  }
 }
 
 String colorToString(color c) {
@@ -116,7 +105,7 @@ PImage cropAndScaleImage(PImage source, int targetWidth, int targetHeight) {
 
   PImage result = source.get(cropX, cropY, cropWidth, cropHeight);
   result.resize(targetWidth, targetHeight);
-  result = result.get(cropX, cropY, targetWidth, targetHeight);
+  //result = result.get(cropX, cropY, targetWidth, targetHeight);
 
   return result;
 }

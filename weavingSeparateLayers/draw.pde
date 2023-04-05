@@ -24,6 +24,31 @@ void draw() {
   drawActiveLayers();
   
   imageToPath.get(0).drawNails();
+  
+  report();
+}
+
+void report() {
+  String result = "";
+  result+="height="+height+"\n";
+  result+="NUM_NAILS="+NUM_NAILS+"\n";
+  result+="alphaAdjust="+alphaAdjust+"\n";
+  result+="minimumErrorLimit="+minimumErrorLimit+"\n";
+  result+="myStrokeWeight="+myStrokeWeight+"\n";
+  result+="minimumLineLength="+minimumLineLength+"\n";
+  result+="mySmooth="+mySmooth+"\n";
+  
+  int i=0;
+  for(ImageToPath p : imageToPath) {
+    result+="layer "+i+"="+colorToString(p.channelColor)+"\n";
+    ++i;
+  }
+  
+  fill(255);
+  stroke(0);
+  textSize(15);
+  textLeading(15);
+  text(result,width/2+5,45);
 }
 
 void drawActiveLayers() {
