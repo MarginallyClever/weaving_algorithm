@@ -1,7 +1,13 @@
 //-----------------------------------------------------------
-// create a separate image for each string color.
-// substract the best string from each image.
-// display the result of all the strings put together.
+// create a separate image for each thread color.
+// for each image, 
+// - smash the image down to grayscale, where white is the
+//   closest match to the color.
+// - find the best starting pair of nails (the one that has 
+//   the most white)
+// - iteratively travel across the image, always picking the
+//   next best pair.  never revisitng a pair of nails.
+// display the result of all threads put together.
 // 2023-04-03 dan@marginallyclever.com
 //-----------------------------------------------------------
 // number of nails around the perimeter.
