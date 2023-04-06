@@ -13,15 +13,20 @@
 // number of nails around the perimeter.
 final int NUM_NAILS = 180;
 // 0...1  adjusts alpha of all strings.  lower is more transparent.
-final float alphaAdjust = 0.5f;
+final float alphaAdjust = 0.850f;
 // 0...1 controls when to stop adding lines.  lower means more lines.
-final float minimumErrorLimit = 0.09;
+final float minimumErrorLimit = 0.155;
 // must be greater than 0.  thickness of line in path.
 final float myStrokeWeight = 1.0;
 // skip all lines shorter than this many pixels
 final int minimumLineLength = 50;
-// anti-alias all lines.
-final int mySmooth = 1;
+// anti-alias all lines.  default is 2.  valid numbers are 2,3,4, or 8.
+final int mySmooth = 8;
+// when choosing best line, give a bonus to longer lines.
+// default is 1.  less than 1 gives a bonus to longer lines.
+// effect is a power function so make very small changes.
+final float lengthFactor = 0.94;
+
 
 // do not touch these.
 PImage img;
@@ -34,13 +39,13 @@ void setup() {
   size(1600, 800);  // width must be height*2.
   
   // change your color layers here.  first color will be on the bottom of the stack.
-  imageToPath.add(new ImageToPath(NUM_NAILS,height,color(255,255,255)));  // white
   //imageToPath.add(new ImageToPath(NUM_NAILS,height,color(255,0,0)));  // red
   //imageToPath.add(new ImageToPath(NUM_NAILS,height,color(0,255,0)));  // green
   //imageToPath.add(new ImageToPath(NUM_NAILS,height,color(0,0,255)));  // blue
   imageToPath.add(new ImageToPath(NUM_NAILS,height,color(0,255,255)));  // cyan
   imageToPath.add(new ImageToPath(NUM_NAILS,height,color(255,0,255)));  // magenta
   imageToPath.add(new ImageToPath(NUM_NAILS,height,color(255,255,0)));  // yellow
+  imageToPath.add(new ImageToPath(NUM_NAILS,height,color(255,255,255)));  // white
   imageToPath.add(new ImageToPath(NUM_NAILS,height,color(0,0,0,0)));  // black
   
   createCircleBorder();

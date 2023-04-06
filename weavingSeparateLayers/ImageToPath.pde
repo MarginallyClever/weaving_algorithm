@@ -121,7 +121,7 @@ class ImageToPath {
     pathImg.smooth(mySmooth);
     pathImg.stroke(filterColor);
     pathImg.strokeWeight(myStrokeWeight);
-    pathImg.blendMode(ADD);
+    pathImg.blendMode(BLEND);
     pathImg.line(nail1.x, nail1.y, nail2.x, nail2.y);
     pathImg.endDraw();
   }
@@ -218,7 +218,7 @@ class ImageToPath {
     }
     if(count<minimumLineLength) return 0;
     
-    return error/(float)count;
+    return error / pow(count,lengthFactor);
   }
 
   
@@ -301,11 +301,13 @@ class ImageToPath {
       return -1; // No more valid paths found
     }
 
-    float len = getLength(currentNailIndex,nextNailIndex);
-    if(maxLineError < len * minimumErrorLimit) {
+    float len = getLength(currentNailIndex,nextNailIndex) * minimumErrorLimit;
+    if(maxLineError < len) {
       paused=true;
       return -1;  // makes image worse, not better.
     }
+    
+    println("err="+maxLineError+" vs " + len);
 
     subtractIntensityBetweenNails(nails[currentNailIndex], nails[nextNailIndex]);
     nailPath.add(nextNailIndex);
