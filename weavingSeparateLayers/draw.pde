@@ -1,3 +1,6 @@
+import java.time.LocalDate;
+import java.time.LocalTime;
+
 int drawMode = 0;
 int startIndex = 0;
 
@@ -28,7 +31,7 @@ void draw() {
   report();
 }
 
-void report() {
+String generateReport() {
   String result = "";
   result+="height="+height+"\n";
   result+="NUM_NAILS="+NUM_NAILS+"\n";
@@ -37,12 +40,18 @@ void report() {
   result+="myStrokeWeight="+myStrokeWeight+"\n";
   result+="minimumLineLength="+minimumLineLength+"\n";
   result+="mySmooth="+mySmooth+"\n";
+  result+="lengthFactor="+lengthFactor+"\n";
   
   int i=0;
   for(ImageToPath p : imageToPath) {
     result+="layer "+i+"="+colorToString(p.channelColor)+"\n";
     ++i;
   }
+  return result;
+}
+
+void report() {
+  String result = generateReport();
   
   fill(255);
   stroke(0);
@@ -100,4 +109,22 @@ void keyReleased() {
   size = imageToPath.size();
   if(keyCode=='8') startIndex = (startIndex+1) % size; 
   if(keyCode=='9') startIndex = (startIndex+size-1) % size;
+  if(keyCode=='0') writeToFile();
+}
+
+void writeToFile() {
+  PrintWriter writer = createWriter("output.txt");
+  writer.println("Saved "+LocalDate.now()+" "+LocalTime.now());
+  writer.println("Source image "+filePath);
+  writer.println("nails start east and continue counter-clockwise.");
+  writer.println(generateReport());
+  
+  for(int i=0;i<imageToPath.size();++i) {
+    int j = getOffsetIndex(i);
+    ImageToPath path = imageToPath.get(j);
+    path.write(writer);
+  }
+  writer.println("\nEND");
+  writer.flush();
+  writer.close();
 }

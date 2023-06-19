@@ -1,4 +1,5 @@
 import java.util.HashSet;
+import java.io.BufferedWriter;
 
 class ImageToPath {
   int numNails;
@@ -93,11 +94,11 @@ class ImageToPath {
     image(pathImg,0,0);
   }
   
-  public void recalculatePathImage() {    
+  public void recalculatePathImage() {   
+    pathImg.smooth(mySmooth); 
     pathImg.beginDraw();
     pathImg.background(0,0,0,0);
     pathImg.noFill();
-    pathImg.smooth(mySmooth);
     pathImg.stroke(filterColor);
     pathImg.strokeWeight(myStrokeWeight);
     
@@ -116,9 +117,9 @@ class ImageToPath {
     PVector nail1 = nails[currentNailIndex];
     PVector nail2 = nails[nextNailIndex];
 
+    pathImg.smooth(mySmooth);
     pathImg.beginDraw();
     pathImg.noFill();
-    pathImg.smooth(mySmooth);
     pathImg.stroke(filterColor);
     pathImg.strokeWeight(myStrokeWeight);
     pathImg.blendMode(BLEND);
@@ -126,10 +127,10 @@ class ImageToPath {
     pathImg.endDraw();
   }
   
+  // Create an array of "nails" in a circle around the edge of the image
   public void createNails(float radius) {
     float r = radius-5;
     
-    // Create an array of "nails" in a circle around the edge of the image
     nails = new PVector[numNails];
     for (int i = 0; i < numNails; i++) {
       float angle = map(i, 0, numNails, 0, TWO_PI);
@@ -139,30 +140,31 @@ class ImageToPath {
     }
   }
   
-  private int getRed(PImage img,int x,int y) {
+  // blue channel only
+  private int getBlue(PImage img,int x,int y) {
     color pixelColor = img.get(x, y);
-    return (pixelColor >> 16) & 0xFF; // Extract the red channel
+    return (pixelColor) & 0xFF;
   }
   
   private int pixelError(int x,int y) {
     return pixelError_intensity(x,y);
     //return pixelError_diff(x,y);
-    //return pixelError_redTanH(x,y);
+    //return pixelError_tanH(x,y);
     //return pixelError_fromCenter(x,y);
   }
   
   private int pixelError_intensity(int x,int y) {
-    return getRed(croppedImg,x,y);
+    return getBlue(croppedImg,x,y);
   }
   
-  private int pixelError_redTanH(int x,int y) {
-    float v = (float)getRed(croppedImg,x,y)/255.0;  // 0..1
+  private int pixelError_tanH(int x,int y) {
+    float v = (float)getBlue(croppedImg,x,y)/255.0;  // 0..1
     v = (float)Math.tanh(v-0.5f)+0.5f;
     return (int)(v*255f);
   }
   
   private int pixelError_diff(int x,int y) {
-    int a = getRed(croppedImg, x, y);
+    int a = getBlue(croppedImg, x, y);
     int b = intensity;
     return max(0,a-b);
   }
@@ -254,9 +256,9 @@ class ImageToPath {
   }
   
   private void subtractIntensityBetweenNails(PVector nail1, PVector nail2) {
+    croppedImg.smooth(mySmooth);
     croppedImg.blendMode(SUBTRACT);
     croppedImg.beginDraw();
-    croppedImg.smooth(mySmooth);
     croppedImg.stroke(intensity);
     croppedImg.strokeWeight(myStrokeWeight);
     croppedImg.line(nail1.x,nail1.y,nail2.x,nail2.y);
@@ -267,19 +269,14 @@ class ImageToPath {
     return currentNailIndex < nextNailIndex ? currentNailIndex + "-" + nextNailIndex : nextNailIndex + "-" + currentNailIndex;
   }
 
-  /**
-   * step-by-step version of buildNailPath
-   */
   void iterate() {
     if(croppedImg==null) return;
     if(paused) return;
     
-    if(nailPath.size() < numNails * (numNails - 1) / 2) { // Maximum number of unique paths
-      findStep();
-    }
+    findStep();
   }
   
-  private int findStep() {
+  private void findStep() {
     int nextNailIndex = -1;
     float maxLineError = -1;
 
@@ -298,16 +295,16 @@ class ImageToPath {
 
     if(nextNailIndex == -1) {
       paused=true;
-      return -1; // No more valid paths found
+      return; // No more valid paths found
     }
 
     float len = getLength(currentNailIndex,nextNailIndex) * minimumErrorLimit;
     if(maxLineError < len) {
       paused=true;
-      return -1;  // makes image worse, not better.
+      return;  // makes image worse, not better.
     }
     
-    println("err="+maxLineError+" vs " + len);
+    //println("err="+maxLineError+" vs " + len);
 
     subtractIntensityBetweenNails(nails[currentNailIndex], nails[nextNailIndex]);
     nailPath.add(nextNailIndex);
@@ -317,10 +314,20 @@ class ImageToPath {
     visitedPaths.add(pathKey);
 
     currentNailIndex = nextNailIndex;
-    return nextNailIndex;
+    return;
   }
   
   float getLength(int a,int b) {
     return dist(nails[a].x,nails[a].y,nails[b].x,nails[b].y);
+  }
+  
+  void write(PrintWriter writer) {
+    writer.println("color "+colorToString(channelColor));
+    String add="";
+    for(Integer i : nailPath) {
+      writer.print(add+Integer.toString(i));
+      add=", ";
+    }
+    writer.println();
   }
 }

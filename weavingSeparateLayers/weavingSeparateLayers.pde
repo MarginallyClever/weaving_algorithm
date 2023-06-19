@@ -29,10 +29,12 @@ final float lengthFactor = 0.94;
 
 
 // do not touch these.
+String filePath;
 PImage img;
 PGraphics circleBorder;
 ArrayList<ImageToPath> imageToPath = new ArrayList<ImageToPath>();
 color backgroundColor;
+
 
 void setup() {
   // size of window
@@ -55,7 +57,7 @@ void setup() {
 }
 
 String colorToString(color c) {
-  return ""+red(c)+","+green(c)+","+blue(c)+","+alpha(c);
+  return ""+(int)red(c)+","+(int)green(c)+","+(int)blue(c)+","+(int)alpha(c);
 }
 
 void imageSelected(File selection) {
@@ -63,7 +65,7 @@ void imageSelected(File selection) {
     println("No file selected.");
     exit();
   } else {
-    String filePath = selection.getAbsolutePath();
+    filePath = selection.getAbsolutePath();
     img = loadImage(filePath);
     img = cropAndScaleImage(img, height, height);
     backgroundColor = calculateAverageColor(img);
@@ -151,7 +153,7 @@ public float calculateColorSimilarity(color c1, color c2) {
   float distance = dist(r1, g1, b1, r2, g2, b2);
   float maxDistance = dist(0, 0, 0, 255, 255, 255);
 
-  return 1 - (distance / maxDistance);
+  return 1.0f - (distance / maxDistance);
 }
 
 void createCircleBorder() {
