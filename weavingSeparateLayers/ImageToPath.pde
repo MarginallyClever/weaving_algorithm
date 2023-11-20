@@ -38,20 +38,20 @@ class ImageToPath {
   public void begin(PImage sourceImage) {
     color c = channelColor;
     PImage redChannel = generateGrayscaleImage(sourceImage,c);
-    int alpha = (int)max(1.0f,calculateAverageRedIntensity(redChannel)*alphaAdjust);
-    color c2 = color(red(c),green(c),blue(c),alpha);
+    int alpha = (int)max(1.0f,calculateAverageBlueIntensity(redChannel));
+    color c2 = color(red(c),green(c),blue(c),alpha*alphaAdjust);
     
     begin(redChannel,(int)alpha,c2);
   }
   
-  float calculateAverageRedIntensity(PImage img) {
+  float calculateAverageBlueIntensity(PImage img) {
     float totalRed = 0;
     int numPixels = img.width * img.height;
   
     img.loadPixels();
     for (int i = 0; i < numPixels; i++) {
-      float v = red(circleBorder.pixels[i])/255.0f;
-      totalRed += red(img.pixels[i])*v;
+      float v = blue(circleBorder.pixels[i])/255.0f;
+      totalRed += blue(img.pixels[i])*v;
     }
   
     return totalRed / numPixels;
@@ -148,6 +148,7 @@ class ImageToPath {
   
   private int pixelError(int x,int y) {
     return pixelError_intensity(x,y);
+    //return pixelError_intensity_pow(x,y);
     //return pixelError_diff(x,y);
     //return pixelError_tanH(x,y);
     //return pixelError_fromCenter(x,y);
@@ -155,6 +156,10 @@ class ImageToPath {
   
   private int pixelError_intensity(int x,int y) {
     return getBlue(croppedImg,x,y);
+  }
+  
+  private int pixelError_intensity_pow(int x,int y) {
+    return (int)pow(getBlue(croppedImg,x,y),1.5);
   }
   
   private int pixelError_tanH(int x,int y) {
