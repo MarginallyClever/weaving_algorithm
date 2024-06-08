@@ -36,10 +36,15 @@ float [] intensities = new float[numberOfPoints];
 double [] px = new double[numberOfPoints];
 double [] py = new double[numberOfPoints];
 PImage img;
+// place to store visible progress fo weaving.
+// also used for finding next best thread.
+PGraphics dest; 
 
 int totalLinesDrawn=0;
 int currentPoint=0;
 int previewPoint=0;
+
+boolean ready=false;
 
 
 //------------------------------------------------------
@@ -49,17 +54,29 @@ int previewPoint=0;
  * Don't like it?  Tell the Processing team. 
  */
 void setup() {
-  // the name of the image to load
-  img = loadImage("2016-05-08 greek woman.JPG");
   // the size of the screen is img.width*2, img.height 
-  size(1336,1000);
+  size(800,820);
+
+  ready=false;
+  selectInput("Select an image file","inputSelected");
+}
+
+
+void inputSelected(File selection) {
+  if(selection == null) {
+    exit();
+    return;
+  }
   
+  // the name of the image to load
+  img = loadImage(selection.getAbsolutePath());
+  cropImageToSquare();
+  resizeImageToFillWindow();
   // smash the image to grayscale
   img.filter(GRAY);
   
   int half = numberOfPoints/2;
   
-  println("setup a");
   for(int x=0;x<pointsWide;++x) {
     // top
     px[     x] = (float)img.width*(float)x/(float)pointsWide;
@@ -69,7 +86,6 @@ void setup() {
     py[half+x] = img.height;
   }
   
-  println("setup b");
   for(int y=0;y<pointsHigh;++y) {
     // right
     int y2 = pointsWide+y;
@@ -80,7 +96,22 @@ void setup() {
     py[half+y2] = img.height-1 - py[y2];
   }
   
+  dest = createGraphics(img.width,img.height);
   println("setup done");
+  ready=true;
+}
+
+
+void cropImageToSquare() {
+  if(img.height<img.width) {
+    img = img.get(0,0,img.height, img.height);
+  } else {
+    img = img.get(0,0,img.width, img.width);
+  }
+}
+
+void resizeImageToFillWindow() {
+  img.resize(width,width);
 }
 
 
@@ -92,6 +123,8 @@ void mouseReleased() {
 
 //------------------------------------------------------
 void draw() {
+  if(!ready) return;
+  
   if( previewPoint < numberOfPoints ) {
     previewPointOrder();
   } else {
@@ -133,8 +166,13 @@ void updateLines() {
       }
       if(singleStep) paused=true;
     }
-    image(img,width/2,0);
+    image(dest,0,0,width,height);
   }
+  
+  drawProgressBar();
+}
+
+void drawProgressBar() {
   // progress bar
   float percent = (float)totalLinesDrawn / (float)totalLinesToDraw;
   
