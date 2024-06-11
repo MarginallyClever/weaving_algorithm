@@ -159,11 +159,8 @@ void setup() {
 
 
 void cropImageToSquare() {
-  if(img.height<img.width) {
-    img = img.get(0,0,img.height, img.height);
-  } else {
-    img = img.get(0,0,img.width, img.width);
-  }
+  int s = min(img.height,img.width);
+  img = img.get(0,0,s,s);
 }
 
 
