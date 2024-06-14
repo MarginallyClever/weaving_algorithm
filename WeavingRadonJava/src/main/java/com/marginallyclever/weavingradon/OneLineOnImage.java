@@ -12,14 +12,39 @@ public class OneLineOnImage extends JPanel implements RayIllustrator {
     private RadonThreader radonThreader;
     private RadonPanel singleRadon;
     ReentrantLock lock = new ReentrantLock();
+    private Component oldLabel;
 
     public OneLineOnImage() {
-        super();
+        super(new BorderLayout());
+
+        JToolBar toolbar = new JToolBar();
+        toolbar.setFloatable(false);
+        add(toolbar, BorderLayout.NORTH);
+
+        JButton allThreads = new JButton("All Threads");
+        allThreads.addActionListener(e -> {
+            if(radonThreader!=null && singleRadon !=null) {
+                drawAllThreads();
+            }
+        });
+        toolbar.add(allThreads);
+    }
+
+    private void drawAllThreads() {
+        var g = image.getGraphics();
+        g.setColor(Color.BLACK);
+        g.fillRect(0,0,image.getWidth(),image.getHeight());
+        for(ThreadColor t : radonThreader.threads) {
+            t.display(image);
+        }
+        for(ThreadColor t : radonThreader.remainingThreads) {
+            t.display(image);
+        }
+        var radon = radonThreader.createRadonTransform(image);
+        singleRadon.setImage(radon);
     }
 
     public void setImage(BufferedImage srcImage) {
-        removeAll();
-
         int w = 0, h = 0;
         if (srcImage != null) {
             w = srcImage.getWidth();
@@ -27,12 +52,14 @@ public class OneLineOnImage extends JPanel implements RayIllustrator {
         }
         if(w==0||h==0) return;
         image = new BufferedImage(w, h, BufferedImage.TYPE_INT_ARGB);
-        add(new JLabel(new ImageIcon(image)), BorderLayout.CENTER);
+        if(oldLabel!=null) remove(oldLabel);
+        add(oldLabel = new JLabel(new ImageIcon(image)), BorderLayout.CENTER);
         repaint();
         var radon = radonThreader.createRadonTransform(image);
         singleRadon.setImage(radon);
     }
 
+    @Override
     public void setRadon(RadonThreader radonThreader, RadonPanel singleRadon) {
         this.radonThreader = radonThreader;
         this.singleRadon = singleRadon;

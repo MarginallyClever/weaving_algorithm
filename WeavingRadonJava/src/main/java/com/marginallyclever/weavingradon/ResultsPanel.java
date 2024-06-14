@@ -3,15 +3,14 @@ package com.marginallyclever.weavingradon;
 import javax.swing.*;
 import javax.vecmath.Vector2d;
 import java.awt.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 import java.awt.image.BufferedImage;
 
 public class ResultsPanel extends JPanel implements RayIllustrator {
     public static final int NAIL_RADIUS = 3;
     public static final int TOOLBAR_HEIGHT = 30;
 
-    private final RadonThreader radonThreader;
+    private RadonThreader radonThreader;
+    private RadonPanel radonPanel;
     private final JToolBar toolbar = new JToolBar();
 
     private BufferedImage image;
@@ -23,17 +22,17 @@ public class ResultsPanel extends JPanel implements RayIllustrator {
 
     JToggleButton togglePlay = new JToggleButton("Play");
 
-    public ResultsPanel(RadonThreader radonThreader) {
+    public ResultsPanel() {
         super(new BorderLayout());
         setName("Viewport");
-        this.radonThreader = radonThreader;
 
         // Create a Timer that fires every 100 milliseconds
-        Timer timer = new Timer(200, (e) -> {
-            if(!radonThreader.addNextBestThread()) {
+        Timer timer = new Timer(50, (e) -> {
+            makeStep();
+            if(radonThreader == null || radonThreader.shouldStop()) {
                 togglePlay.setSelected(false);
             }
-            repaint();
+            invalidate();
         });
 
 
@@ -65,18 +64,15 @@ public class ResultsPanel extends JPanel implements RayIllustrator {
 
         JButton nextBest = new JButton("Next Best Thread");
         nextBest.addActionListener(e -> {
-            radonThreader.getNextBestThread();
-            showTheta = radonThreader.bestTheta;
-            showR = radonThreader.bestR;
+            ThetaR bestFound = radonThreader.getNextBestThread();
+            showTheta = bestFound.theta;
+            showR = bestFound.r;
             repaint();
         });
         toolbar.add(nextBest);
 
         JButton step = new JButton("Step");
-        step.addActionListener(e -> {
-            radonThreader.addNextBestThread();
-            repaint();
-        });
+        step.addActionListener(e -> makeStep());
         toolbar.add(step);
 
         togglePlay.setSelected(false);
@@ -94,6 +90,12 @@ public class ResultsPanel extends JPanel implements RayIllustrator {
 
 
         add(toolbar, BorderLayout.NORTH);
+    }
+
+    public void makeStep() {
+        radonThreader.addNextBestThread();
+        radonPanel.setImage(radonThreader.getCurrentRadonImage());
+        repaint();
     }
 
     public void setImage(BufferedImage image) {
@@ -174,5 +176,10 @@ public class ResultsPanel extends JPanel implements RayIllustrator {
         }
 
         g.translate(0,-dim.height);
+    }
+
+    public void setRadon(RadonThreader radonThreader, RadonPanel radonPanel) {
+        this.radonThreader = radonThreader;
+        this.radonPanel = radonPanel;
     }
 }

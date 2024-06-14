@@ -31,6 +31,19 @@ public class RadonPanel extends JPanel {
                 repaint();
             }
         });
+
+        addMouseMotionListener(new MouseAdapter() {
+            @Override
+            public void mouseMoved(MouseEvent e) {
+                super.mouseMoved(e);
+                setToolTipText("Theta: "+e.getX()+", R: "+(e.getY()-toolbar.getPreferredSize().height));
+            }
+            @Override
+            public void mouseDragged(MouseEvent e) {
+                super.mouseDragged(e);
+                setToolTipText("Theta: "+e.getX()+", R: "+(e.getY()-toolbar.getPreferredSize().height));
+            }
+        });
     }
 
     private void buildToolbar() {

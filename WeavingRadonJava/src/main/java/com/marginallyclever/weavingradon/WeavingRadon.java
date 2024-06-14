@@ -24,14 +24,15 @@ public class WeavingRadon {
 
     private final JFrame frame;
     private final ArrayList<DockingPanel> windows = new ArrayList<>();
-    private final ResultsPanel resultsPanel;
-    private final RadonPanel radonPanel;
-    private final OneLineOnImage singleLine = new OneLineOnImage();
-    private final RadonPanel singleRadon;
     private final JFileChooser fileChooser;
 
-    public static final RadonThreader radonThreader = new RadonThreader();
+    private final ResultsPanel resultsPanel;
+    private final RadonPanel radonPanel;
+    public static final RadonThreader radonThreaderA = new RadonThreader();
 
+    private final OneLineOnImage singleLine;
+    private final RadonPanel singleRadon;
+    public static final RadonThreader radonThreaderB = new RadonThreader();
 
     public static void main(String[] args) {
         SwingUtilities.invokeLater(WeavingRadon::new);
@@ -47,10 +48,13 @@ public class WeavingRadon {
         frame.setLocationRelativeTo(null);
 
         // create panels
-        resultsPanel = new ResultsPanel(radonThreader);
+        resultsPanel = new ResultsPanel();
         radonPanel = new RadonPanel(resultsPanel);
+        resultsPanel.setRadon(radonThreaderA, radonPanel);
+
+        singleLine = new OneLineOnImage();
         singleRadon = new RadonPanel(singleLine);
-        singleLine.setRadon(radonThreader,singleRadon);
+        singleLine.setRadon(radonThreaderB,singleRadon);
 
         // setup the docking system and dock the panels.
         initDocking();
@@ -139,10 +143,14 @@ public class WeavingRadon {
                 BufferedImage square = new BufferedImage(d,d,BufferedImage.TYPE_INT_ARGB);
                 square.getGraphics().drawImage(image,0,0,d,d,0,0,s,s,null);
 
+                radonThreaderA.setImage(square);
+                radonThreaderA.maskCurrentRadonByRemainingThreads();
                 resultsPanel.setImage(square);
-                radonThreader.setImage(square);
+                radonPanel.setImage(radonThreaderA.getCurrentRadonImage());
+
+                radonThreaderB.setImage(square);
                 singleLine.setImage(square);
-                radonPanel.setImage(radonThreader.currentRadonImage);
+                singleRadon.setImage(radonThreaderB.getCurrentRadonImage());
             } catch (Exception e) {
                 e.printStackTrace();
             }

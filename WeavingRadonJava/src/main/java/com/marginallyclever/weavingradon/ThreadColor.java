@@ -24,4 +24,13 @@ public class ThreadColor {
         g.setColor(col);
         g.drawLine((int)start.x, (int)start.y, (int)end.x, (int)end.y);
     }
+
+    @Override
+    public String toString() {
+        return theta+","+r+","+ start +","+end+","+ col.getRed()+","+ col.getGreen()+","+ col.getBlue()+","+ col.getAlpha();
+    }
+
+    public int getY(int radius) {
+        return r+radius;
+    }
 }
