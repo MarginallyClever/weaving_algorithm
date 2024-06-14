@@ -1,3 +1,5 @@
+import java.util.stream.IntStream;
+import java.util.function.Consumer;
 
 class RadonThreader {
   final ArrayList<ThreadColor> remainingThreads = new ArrayList<ThreadColor>();
@@ -5,12 +7,17 @@ class RadonThreader {
   PImage referenceImage;
   PGraphics buffer;
   PGraphics currentRadonImage;
+  PGraphics lastRadonImage;
   
   int bufferWidth;
   int bufferHeight;
   PVector center;
-  float radius;
+  int radius;
   int diag;
+  float[] cosTheta = new float[180];
+  float[] sinTheta = new float[180];
+  int bestTheta=0;
+  int bestR=0;
 
   RadonThreader(PImage referenceImage) {
     this.referenceImage = referenceImage;
@@ -18,11 +25,16 @@ class RadonThreader {
     this.bufferHeight = referenceImage.height;
     buffer = createGraphics(bufferWidth, bufferHeight);
     
+    // Precompute cos and sin values
+    for (int theta = 0; theta < 180; theta++) {
+        float angle = radians(theta);
+        cosTheta[theta] = cos(angle);
+        sinTheta[theta] = sin(angle);
+    }
+    
     center = new PVector(bufferWidth / 2, bufferHeight / 2);
     radius = bufferWidth / 2;
-    //diag = (int)(radius+1);
-    //diag = (int) sqrt(bufferWidth * bufferWidth + bufferHeight * bufferHeight);
-    diag = (int)(radius*2);
+    diag = bufferWidth;//(int)(radius*2);
     
     // Draw initial image to buffer
     buffer.beginDraw();
@@ -35,67 +47,77 @@ class RadonThreader {
     println("done");
   }
 
+  /** 
+   * allocate all the threads once.  includes start, end, theta, r, and color.
+   */
   void createThreads() {
     for (int i = 0; i < numNails; i++) {
+      PVector start = nails.get(i).position;
+      float sx = start.x - center.x;
+      float sy = start.y - center.y;
+        
       for (int j = i + 1; j < numNails; j++) {
-        PVector start = nails.get(i).position;
         PVector end = nails.get(j).position;
         float dx = end.x - start.x;
         float dy = end.y - start.y;
         int theta = (int)degrees(atan2(dy, dx));
         if(theta < 0) {
-          theta += 180; // Ensure theta is within 0-179
+          theta += 180; // Ensure theta is within [0-180)
         }
-        int r = (int) ((start.x - center.x) * cos(radians(theta))
-                     + (start.y - center.y) * sin(radians(theta)));
-        ThreadColor thread = new ThreadColor(start, end, color(255, 255, 255),theta,r); 
+        if(theta >=180) {
+          theta -= 180;
+        }
+        
+        int r = (int)(sx * cos(radians(theta)) + sy * sin(radians(theta)));
+        ThreadColor thread = new ThreadColor(start, end, theta, r, color(255, 255, 255,alpha)); 
         remainingThreads.add(thread);
       }
     }
   }
 
-  PGraphics createRadonTransform(PGraphics pg) { //<>//
+  PGraphics createRadonTransform(PGraphics pg) {
+    pg.loadPixels();
+    
     PGraphics radonImage = createGraphics(180, diag);
     radonImage.beginDraw();
     radonImage.loadPixels();
-    pg.loadPixels();
     
-    for (int theta = 0; theta < 180; theta++) {
-      float angle = radians(theta);
-      float cosTheta = cos(angle);
-      float sinTheta = sin(angle);
+    IntStream.range(0, 180).parallel().forEach(theta -> {
+      float cT = cosTheta[theta];
+      float sT = sinTheta[theta];
+      final int [] sum = new int[1];
+      final int [] count = new int[1];
       
-      for (int r = (int)-radius; r < (int)radius; r++) {
-        long sum = 0;
-        int count = 0;
+      for (int r = -radius; r < radius; r++) {
+        sum[0] = 0;
+        count[0] = 1;
         
         // Compute the start and end points for the line at this angle and distance
         // Calculate intersections with the circle
         float d = sqrt(radius * radius - r * r);
-        float x0 = center.x + r * cosTheta - d * sinTheta;
-        float y0 = center.y + r * sinTheta + d * cosTheta;
-        float x1 = center.x + r * cosTheta + d * sinTheta;
-        float y1 = center.y + r * sinTheta - d * cosTheta;
+        float x0 = center.x + r * cT - d * sT;
+        float y0 = center.y + r * sT + d * cT;
+        float x1 = center.x + r * cT + d * sT;
+        float y1 = center.y + r * sT - d * cT;
         
         // Use Bresenham's algorithm to sample points along the line
-        ArrayList<int[]> points = bresenham((int)x0, (int)y0, (int)x1, (int)y1);
-        for (int[] point : points) {
+        bresenham((int)x0, (int)y0, (int)x1, (int)y1, point -> {
           int x = point[0];
           int y = point[1];
           if (x >= 0 && x < bufferWidth && y >= 0 && y < bufferHeight) {
             int index = x + y * bufferWidth;
-            sum += red(pg.pixels[index]);
-            count++;
+            sum[0] += blue(pg.pixels[index]);
+            count[0]++;
           }
-        }
+        });
         
-        int ri = r + diag / 2;
-        if (ri >= 0 && ri < diag && count>0) {
-          int v = (int)( (float)sum / (float)count );
+        int ri = r + radius;
+        if (ri >= 0 && ri < diag && count[0]>0) {
+          int v = (int)( (float)sum[0] / (float)count[0] );
           radonImage.pixels[theta + ri * 180] = color(v);
         }
       }
-    }
+    });
     
     radonImage.updatePixels();
     radonImage.endDraw();
@@ -110,39 +132,40 @@ class RadonThreader {
     currentRadonImage.loadPixels();
     
     float maxIntensity = 0;
-    int bestTheta=0, bestR=0;
+    bestTheta=0;
+    bestR=0;
     
-    // Find the pixel with the maximum intensity in the current Radon image
-    int i=0;
-    for(int theta = 0;theta<180;++theta) {
-      for(int r=0;r<diag;++r) {
-        float intensity = red(currentRadonImage.pixels[i]);
+    // Find the pixel with the maximum intensity in the current radon transform
+    //int i=0;
+    for(int r=-radius;r<radius;++r) {
+      for(int theta = 0; theta<180; ++theta) {
+        int i = theta + (r + radius) * 180;
+        float intensity = blue(currentRadonImage.pixels[i]);
         if (intensity > maxIntensity) {
           maxIntensity = intensity;
           bestTheta = theta;
           bestR = r;
         }
-        ++i;
+        //i++;
       }
     }
-    
-    println(maxIntensity +"\t"+ bestTheta +"\t"+ bestR);
-    
-    currentRadonImage.loadPixels();
-    currentRadonImage.pixels[bestTheta + bestR*180] = color(0,0,0);
-    currentRadonImage.updatePixels();
 
     ThreadColor bestThread = findThreadForMaxIntensity(bestTheta, bestR);
     if (bestThread != null && remainingThreads.size() > numNails) {
-      println("found "+ bestThread.theta +"\t"+ bestThread.r );
+      println(maxIntensity +"\t"+ bestTheta +"\t"+ bestR +"\tfound "+ bestThread.theta +"\t"+ bestThread.r );
       remainingThreads.remove(bestThread);
       threads.add(bestThread);
       subtractThreadFromRadon(bestThread);
-      markPoint(bestTheta,bestR);
       return true;
     }
     
     return false;
+  }
+  
+  void markPoint(int theta,int r) {
+    currentRadonImage.loadPixels();
+    currentRadonImage.pixels[theta + (int)(r+radius) * 180] = 0;
+    currentRadonImage.updatePixels();
   }
 
   ThreadColor findThreadForMaxIntensity(int targetTheta, int targetR) {
@@ -150,12 +173,16 @@ class RadonThreader {
     float minDistance = Float.MAX_VALUE;
     
     for (ThreadColor thread : remainingThreads) {
-        float distance = sq(thread.theta - targetTheta) + sq(thread.r - targetR);
-        if (distance < minDistance) {
-            minDistance = distance;
-            nearestThread = thread;
-        }
+      float distanceSquared = sq(thread.theta - targetTheta) + sq(thread.r - targetR);
+      if (distanceSquared < minDistance) {
+        minDistance = distanceSquared;
+        nearestThread = thread;
+      }
     }
+    
+    markPoint(targetTheta,targetR);
+    if(minDistance>2) return null;
+    
     return nearestThread;
   }
 
@@ -164,33 +191,20 @@ class RadonThreader {
     buffer.background(0);
     thread.display(buffer);
     buffer.endDraw();
-    thread.radonTransform = createRadonTransform(buffer);
-    thread.radonTransform.loadPixels();
-    currentRadonImage.loadPixels();
+    thread.radonTransform = lastRadonImage = createRadonTransform(buffer);
+    lastRadonImage.loadPixels();
     
     for(int i = 0; i < currentRadonImage.pixels.length; i++) {
-      float threadIntensity = red(thread.radonTransform.pixels[i]);
-      float currentIntensity = red(currentRadonImage.pixels[i]);
+      float threadIntensity = blue(lastRadonImage.pixels[i]);
+      float currentIntensity = blue(currentRadonImage.pixels[i]);
       currentRadonImage.pixels[i] = color(max(currentIntensity - threadIntensity, 0));
     }
     
     currentRadonImage.updatePixels();
   }
   
-  void markPoint(int bestTheta,int bestR) {/*
-    currentRadonImage.beginDraw();
-    currentRadonImage.fill(0,0,0);
-    currentRadonImage.ellipse(bestTheta, bestR, 1, 1);
-    currentRadonImage.endDraw();*/
-    
-    currentRadonImage.loadPixels();
-    currentRadonImage.pixels[bestTheta + bestR*180] = color(0,0,0);
-    currentRadonImage.updatePixels();
-  }
-  
   // Bresenham's line algorithm
-  ArrayList<int[]> bresenham(int x0, int y0, int x1, int y1) {
-    ArrayList<int[]> points = new ArrayList<int[]>();
+  void bresenham(int x0, int y0, int x1, int y1, Consumer<int[]> consumer) {
     int dx = abs(x1 - x0);
     int dy = -abs(y1 - y0);
     int sx = x0 < x1 ? 1 : -1;
@@ -198,7 +212,7 @@ class RadonThreader {
     int err = dx + dy;
     
     while (true) {
-      points.add(new int[]{x0, y0});
+      consumer.accept(new int[]{x0, y0});
       if (x0 == x1 && y0 == y1) break;
       int e2 = 2 * err;
       if (e2 >= dy) {
@@ -210,6 +224,5 @@ class RadonThreader {
         y0 += sy;
       }
     }
-    return points;
   }
 }

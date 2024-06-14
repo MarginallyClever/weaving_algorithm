@@ -1,0 +1,178 @@
+package com.marginallyclever.weavingradon;
+
+import javax.swing.*;
+import javax.vecmath.Vector2d;
+import java.awt.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.awt.image.BufferedImage;
+
+public class ResultsPanel extends JPanel implements RayIllustrator {
+    public static final int NAIL_RADIUS = 3;
+    public static final int TOOLBAR_HEIGHT = 30;
+
+    private final RadonThreader radonThreader;
+    private final JToolBar toolbar = new JToolBar();
+
+    private BufferedImage image;
+    private boolean showImage = true;
+    private boolean showNails = true;
+    private boolean showThread = true;
+    private int showTheta=-1;
+    private int showR=-1;
+
+    JToggleButton togglePlay = new JToggleButton("Play");
+
+    public ResultsPanel(RadonThreader radonThreader) {
+        super(new BorderLayout());
+        setName("Viewport");
+        this.radonThreader = radonThreader;
+
+        // Create a Timer that fires every 100 milliseconds
+        Timer timer = new Timer(200, (e) -> {
+            if(!radonThreader.addNextBestThread()) {
+                togglePlay.setSelected(false);
+            }
+            repaint();
+        });
+
+
+        toolbar.setFloatable(false);
+
+        JToggleButton toggleImage = new JToggleButton("Image");
+        toggleImage.setSelected(showImage);
+        toggleImage.addActionListener(e -> {
+            showImage=!showImage;
+            setImage(image);
+        });
+        toolbar.add(toggleImage);
+
+        JToggleButton toggleNails = new JToggleButton("Nails");
+        toggleNails.setSelected(showNails);
+        toggleNails.addActionListener(e -> {
+            showNails=!showNails;
+            repaint();
+        });
+        toolbar.add(toggleNails);
+
+        JToggleButton toggleThread = new JToggleButton("Thread");
+        toggleThread.setSelected(showThread);
+        toggleThread.addActionListener(e -> {
+            showThread=!showThread;
+            repaint();
+        });
+        toolbar.add(toggleThread);
+
+        JButton nextBest = new JButton("Next Best Thread");
+        nextBest.addActionListener(e -> {
+            radonThreader.getNextBestThread();
+            showTheta = radonThreader.bestTheta;
+            showR = radonThreader.bestR;
+            repaint();
+        });
+        toolbar.add(nextBest);
+
+        JButton step = new JButton("Step");
+        step.addActionListener(e -> {
+            radonThreader.addNextBestThread();
+            repaint();
+        });
+        toolbar.add(step);
+
+        togglePlay.setSelected(false);
+        togglePlay.addActionListener(e -> {
+            togglePlay.setText(togglePlay.isSelected() ? "Stop" : "Play");
+            if(togglePlay.isSelected()) {
+                // if play is becoming active, start a recurring timer that adds the next best thread.
+                timer.start();
+            } else {
+                // if play is becoming inactive, stop the timer.
+                timer.stop();
+            }
+        });
+        toolbar.add(togglePlay);
+
+
+        add(toolbar, BorderLayout.NORTH);
+    }
+
+    public void setImage(BufferedImage image) {
+        this.image = image;
+        repaint();
+    }
+
+    @Override
+    public void highlightLine(int theta, int r) {
+        this.showTheta = theta;
+        this.showR = r;
+        repaint();
+    }
+
+    @Override
+    protected void paintComponent(Graphics g) {
+        super.paintComponent(g);
+        Dimension dim = toolbar.getPreferredSize();
+        g.translate(0, dim.height);
+
+        if (showImage && image != null) {
+            // Draw the image at (0, 0) with the size of the panel
+            g.drawImage(image, 0, 0, image.getWidth(), image.getHeight(), this);
+        } else {
+            g.setColor(Color.BLACK);
+            g.fillRect(0, 0, getWidth(), getHeight());
+        }
+
+        if(showNails) {
+            int r = NAIL_RADIUS/2;
+            // draw a circle that fits in the jpanel
+            // fill the ovals
+            g.setColor(Color.RED);
+            for(Vector2d nail : radonThreader.nails) {
+                g.fillOval(
+                        (int) (nail.x-r),
+                        (int) (nail.y-r),
+                        NAIL_RADIUS, NAIL_RADIUS);
+            }
+            // draw the borders
+            g.setColor(Color.WHITE);
+            for(Vector2d nail : radonThreader.nails) {
+                g.drawOval(
+                        (int)(nail.x-r),
+                        (int)(nail.y-r),
+                        NAIL_RADIUS,NAIL_RADIUS);
+            }
+        }
+
+        if(showThread) {
+            for(ThreadColor tc : radonThreader.threads) {
+                g.setColor(tc.col);
+                g.drawLine(
+                        (int)tc.start.x,
+                        (int)tc.start.y,
+                        (int)tc.end.x,
+                        (int)tc.end.y);
+            }
+        }
+
+        // show the line theta/r, where theta is the angle and r is the distance from the center.
+        if(image != null && showTheta>=0 && showTheta<180) {
+            double theta = Math.toRadians(showTheta);
+            g.setColor(Color.GREEN);
+            var w2 = image.getWidth()/2;
+            var h2 = image.getHeight()/2;
+
+            double r = showR - radonThreader.radius;
+            double s = Math.sin(theta);
+            double c = Math.cos(theta);
+            double d = Math.sqrt(w2*w2 - r*r);
+            int x0 = (int)(w2 + r * c - d * s);
+            int y0 = (int)(h2 + r * s + d * c);
+            int x1 = (int)(w2 + r * c + d * s);
+            int y1 = (int)(h2 + r * s - d * c);
+
+            g.drawLine(x0,y0,x1,y1);
+        }
+
+        g.translate(0,-dim.height);
+    }
+}

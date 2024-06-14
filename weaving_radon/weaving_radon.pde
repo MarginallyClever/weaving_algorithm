@@ -2,16 +2,18 @@
 // using radon transform to select next-best thread
 // 2024-06-11 dan@marginallyclever.com
 //--------------------------------------------------------------
-int numNails = 188;  // Number of nails
+int numNails = 100;  // Number of nails
 int bufferWidth = 800;
 int bufferHeight = 800;
+int alpha = 255;  // 0...255
 
 ArrayList<Nail> nails = new ArrayList<Nail>();
 ArrayList<ThreadColor> threads = new ArrayList<ThreadColor>();
 PImage sourceImage;
 RadonThreader radonThreader;
 boolean ready = false;
-
+int mode = 0;
+boolean step = true;
 
 void setup() {
   size(800, 800);
@@ -36,6 +38,7 @@ void fileSelected(File selection) {
     radonThreader = new RadonThreader(sourceImage);
     println("nails");
     generateNails();
+    println("max threads = "+(numNails * (numNails-1)/2)); 
     println("compute...");
     radonThreader.createThreads();
     println("ready");
@@ -46,24 +49,110 @@ void fileSelected(File selection) {
 void draw() {
   if (!ready) return;
   
-  background(0);
-  image(radonThreader.currentRadonImage,0,0);
+  if(!step) return;
+  //step = false;
   
-  if(threads.size()>0) {
-    ThreadColor t = threads.get(threads.size()-1);
-    image(t.radonTransform,180,0);
+  background(0);
+  switch(mode) {
+    case 1:  image(radonThreader.currentRadonImage,0,0);  break;
+    case 2:  if(radonThreader.lastRadonImage != null) {
+               image(radonThreader.lastRadonImage,0,0);
+             }
+             break;
+    case 3:  image(sourceImage,0,0);  break;
+    default: break;
   }
   
+  drawAllThreads();
+  drawAllNails();
+  //drawThreadMask();
+  //drawBestThetaR();
+  
+  radonThreader.addNextBestThread();
+  if(threads.size()>500) {
+    noLoop();
+  }
+}
+
+void drawThetaR(int theta,int r) {
+  ellipse(theta,(r+radonThreader.radius),1,1);
+}
+
+
+void drawBestThetaR() {
+  // green dot at brightest point
+  stroke(0,255,0);
+  fill(0,255,0);
+  drawThetaR(radonThreader.bestTheta,radonThreader.bestR);
+  
+  if(threads.size()>0) {
+    stroke(0,255,255);
+    fill(0,255,255);
+    for(ThreadColor t : threads) {
+      drawThetaR(t.theta,t.r);
+    }
+    // blue dot at chosen thread theta/r
+    ThreadColor t = threads.get(threads.size()-1); 
+    stroke(0,0,255);
+    fill(0,0,255);
+    drawThetaR(t.theta,t.r);
+  }
+  if(radonThreader.remainingThreads.size()>0) {
+    stroke(255,255,0);
+    fill(255,255,0);
+    for(ThreadColor t : radonThreader.remainingThreads) {
+      drawThetaR(t.theta,t.r);
+    }
+  }
+}
+
+void drawAllThreads() {
   for (ThreadColor t : threads) {
     t.display(g);
   }
-  
+}
+
+void drawAllNails() {
   for (Nail n : nails) {
     n.display(g);
   }
+}
+
+void drawThreadMask() {
+  PGraphics img;
   
-  if(!radonThreader.addNextBestThread()) {
-    noLoop();
+  if(threads.size()>0) {
+    img = threads.get(threads.size()-1).radonTransform;
+  } else if(radonThreader.lastRadonImage!=null) {
+    img = radonThreader.lastRadonImage;
+  } else {
+    return;
+  }
+  //*
+  fill(255,0,0);
+  stroke(255,0,0);
+  for(int y=0;y<img.height;++y) {
+    for(int x=0;x<img.width;++x) {
+      float b = blue(img.get(x,y));
+      fill(255,0,0,5*b);
+      stroke(255,0,0,5*b);
+      point(180+x,y);
+    }
+  }
+  /*/
+  image(180+img,0,0);
+  //*/
+}
+
+
+void keyReleased() {
+  switch(key) {
+    case '1': mode=0; break;
+    case '2': mode=1; break;
+    case '3': mode=2; break;
+    case '4': mode=3; break;
+    case ' ': step=true;  break;
+    default: break;
   }
 }
 

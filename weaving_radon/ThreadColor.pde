@@ -1,17 +1,18 @@
 
 class ThreadColor {
-  PVector start;
-  PVector end;
-  color col;
-  float theta, r;
+  PVector start;  // xy
+  PVector end;  // xy 
+  color col;  // rgba
+  int theta;  // degrees
+  int r;  // distance, unit unknown
   PGraphics radonTransform;
 
-  ThreadColor(PVector start, PVector end, color col,float theta,float r) {
+  ThreadColor(PVector start, PVector end, int theta, int r, color col) {
     this.start = start;
     this.end = end;
-    this.col = col;
     this.theta = theta;
     this.r = r;
+    this.col = col;
   }
 
   void display(PGraphics pg) {
