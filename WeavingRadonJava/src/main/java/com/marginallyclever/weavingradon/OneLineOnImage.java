@@ -5,6 +5,9 @@ import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.util.concurrent.locks.ReentrantLock;
 
+/**
+ * Displays a single {@link ThreadColor} on a {@link BufferedImage}.  Used for debugging the {@link RadonThreader}.
+ */
 public class OneLineOnImage extends JPanel implements RayIllustrator {
     private BufferedImage image;
     private int showTheta=-1;
@@ -34,10 +37,10 @@ public class OneLineOnImage extends JPanel implements RayIllustrator {
         var g = image.getGraphics();
         g.setColor(Color.BLACK);
         g.fillRect(0,0,image.getWidth(),image.getHeight());
-        for(ThreadColor t : radonThreader.threads) {
+        for(ThreadColor t : radonThreader.selectedThreads) {
             t.display(image);
         }
-        for(ThreadColor t : radonThreader.remainingThreads) {
+        for(ThreadColor t : radonThreader.potentialThreads) {
             t.display(image);
         }
         var radon = radonThreader.createRadonTransform(image);

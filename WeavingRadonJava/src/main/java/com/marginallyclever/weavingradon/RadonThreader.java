@@ -14,8 +14,8 @@ public class RadonThreader {
     public final int alpha = 64;
 
     public final List<Vector2d> nails = new ArrayList<>();
-    public final List<ThreadColor> threads = new ArrayList<>();
-    public final List<ThreadColor> remainingThreads = new ArrayList<>();
+    public final List<ThreadColor> selectedThreads = new ArrayList<>();
+    public final List<ThreadColor> potentialThreads = new ArrayList<>();
 
     private BufferedImage buffer;
     private BufferedImage currentRadonImage;
@@ -87,9 +87,6 @@ public class RadonThreader {
                 double dx = end.x - start.x;
                 double dy = end.y - start.y;
                 double len = Math.sqrt(dx * dx + dy * dy);
-                // len is never zero because nails never overlap.
-                dx /= len;
-                dy /= len;
 
                 int theta = (int)Math.toDegrees(Math.atan2(-dx, dy));
 
@@ -103,8 +100,8 @@ public class RadonThreader {
 
                 //System.out.println("theta="+theta+" r="+r);
                 maxR = Math.max(maxR, Math.abs(r));
-                ThreadColor thread = new ThreadColor(start, end, theta, r, new Color(255, 255, 255,alpha));
-                remainingThreads.add(thread);
+                ThreadColor thread = new ThreadColor(start, end, new ThetaR(theta, r), new Color(255, 255, 255,alpha),len);
+                potentialThreads.add(thread);
             }
         }
         System.out.println("maxR="+maxR+" image size="+bufferWidth+"x"+bufferHeight);
@@ -121,8 +118,8 @@ public class RadonThreader {
 
             for (int r = -radius; r < radius; r++) {
                 sum[0] = 0;
-                sum[1] = 0;
-                sum[2] = 0;
+                //sum[1] = 0;
+                //sum[2] = 0;
                 count[0] = 1;
 
                 // Compute the start and end points for the line at this angle and distance
@@ -140,8 +137,8 @@ public class RadonThreader {
                     if (x >= 0 && x < bufferWidth && y >= 0 && y < bufferHeight) {
                         var v = new Color(pg.getRGB(x,y));
                         sum[0] += v.getRed();
-                        sum[1] += v.getGreen();
-                        sum[2] += v.getBlue();
+                        //sum[1] += v.getGreen();
+                        //sum[2] += v.getBlue();
                         count[0]++;
                     }
                 });
@@ -149,9 +146,10 @@ public class RadonThreader {
                 int ri = r + radius;
                 if (ri >= 0 && ri < diag && count[0]>0) {
                     int r2 = (int)( (double)sum[0] / (double)count[0] );
-                    int g2 = (int)( (double)sum[1] / (double)count[0] );
-                    int b2 = (int)( (double)sum[2] / (double)count[0] );
-                    int v = (int)Math.min(255, Math.max(0, (r2 + g2 + b2) / 3.0));
+                    //int g2 = (int)( (double)sum[1] / (double)count[0] );
+                    //int b2 = (int)( (double)sum[2] / (double)count[0] );
+                    //int v = (int)Math.min(255, Math.max(0, (r2 + g2 + b2) / 3.0));
+                    int v = r2;
                     radonImage.setRGB(theta, ri, (new Color(v,v,v).getRGB()));
                 }
             }
@@ -167,12 +165,8 @@ public class RadonThreader {
         System.out.println("filterRadonByThreads");
         //
         var filter = new BufferedImage(currentRadonImage.getWidth(), currentRadonImage.getHeight(), BufferedImage.TYPE_INT_ARGB);
-        for(ThreadColor thread : remainingThreads) {
-            try {
-                filter.setRGB(thread.theta, thread.getY(radius), Color.WHITE.getRGB());
-            } catch(ArrayIndexOutOfBoundsException e) {
-                System.out.println("thread is out of bounds: "+thread);
-            }
+        for(ThreadColor thread : potentialThreads) {
+            filter.setRGB(thread.thetaR.theta, thread.thetaR.getY(radius), Color.WHITE.getRGB());
         }
 
         // mask currentRadonImage with filter.
@@ -186,13 +180,13 @@ public class RadonThreader {
     }
 
     public void addNextBestThread() {
-        if (remainingThreads.isEmpty()) return;
+        if (potentialThreads.isEmpty()) return;
 
         ThetaR bestFound = getNextBestThread();
         ThreadColor bestThread = findThreadForMaxIntensity(bestFound);
-        if (bestThread != null && remainingThreads.size() > NUM_NAILS*0.2) {
-            remainingThreads.remove(bestThread);
-            threads.add(bestThread);
+        if (bestThread != null && potentialThreads.size() > NUM_NAILS*0.2) {
+            potentialThreads.remove(bestThread);
+            selectedThreads.add(bestThread);
             //markPoint(bestFound);
             subtractThreadFromRadon(bestThread);
         }
@@ -227,9 +221,9 @@ public class RadonThreader {
         ThreadColor nearestThread = null;
         double minDistance = Double.MAX_VALUE;
 
-        for (ThreadColor thread : remainingThreads) {
-            double x = thread.theta - target.theta;
-            double y = thread.r - target.r;
+        for (ThreadColor thread : potentialThreads) {
+            double x = thread.thetaR.theta - target.theta;
+            double y = thread.thetaR.r - target.r;
             double distanceSquared = ( x*x + y*y );
             if (distanceSquared < minDistance) {
                 minDistance = distanceSquared;
@@ -281,7 +275,8 @@ public class RadonThreader {
 
     double intensity(int col) {
         Color c = new Color(col);
-        return (c.getRed() + c.getGreen() + c.getBlue()) / 3.0;
+        //return (c.getRed() + c.getGreen() + c.getBlue()) / 3.0;
+        return c.getRed();
     }
 
     // Bresenham's line algorithm
@@ -308,7 +303,7 @@ public class RadonThreader {
     }
 
     public boolean shouldStop() {
-        return remainingThreads.size() <= NUM_NAILS*0.2;
+        return potentialThreads.size() <= NUM_NAILS*0.2;
     }
 
     public BufferedImage getCurrentRadonImage() {

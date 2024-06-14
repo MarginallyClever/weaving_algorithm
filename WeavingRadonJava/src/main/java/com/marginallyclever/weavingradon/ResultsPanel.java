@@ -135,33 +135,27 @@ public class ResultsPanel extends JPanel implements RayIllustrator {
 
         if(showNails) {
             int r = NAIL_RADIUS/2;
-            // draw a circle that fits in the jpanel
+            g2.translate(r,r);
             // fill the ovals
             g2.setColor(Color.RED);
             for(Vector2d nail : radonThreader.nails) {
-                g2.fillOval(
-                        (int) (nail.x-r),
-                        (int) (nail.y-r),
-                        NAIL_RADIUS, NAIL_RADIUS);
+                g2.fillOval((int)nail.x, (int)nail.y, NAIL_RADIUS, NAIL_RADIUS);
             }
             // draw the borders
             g2.setColor(Color.WHITE);
             for(Vector2d nail : radonThreader.nails) {
-                g2.drawOval(
-                        (int)(nail.x-r),
-                        (int)(nail.y-r),
-                        NAIL_RADIUS,NAIL_RADIUS);
+                g2.drawOval((int)nail.x, (int)nail.y, NAIL_RADIUS, NAIL_RADIUS);
             }
+            g2.translate(-r,-r);
         }
 
         if(showThread) {
-            for(ThreadColor tc : radonThreader.threads) {
+            for(ThreadColor tc : radonThreader.selectedThreads) {
                 g2.setColor(tc.col);
-                g2.drawLine(
-                        (int)tc.start.x,
-                        (int)tc.start.y,
-                        (int)tc.end.x,
-                        (int)tc.end.y);
+                g2.drawLine((int)tc.start.x,
+                            (int)tc.start.y,
+                            (int)tc.end.x,
+                            (int)tc.end.y);
             }
         }
 

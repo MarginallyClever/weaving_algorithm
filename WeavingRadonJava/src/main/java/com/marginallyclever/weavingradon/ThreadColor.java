@@ -5,18 +5,18 @@ import java.awt.*;
 import java.awt.image.BufferedImage;
 
 public class ThreadColor {
-    Vector2d start;  // xy
-    Vector2d end;  // xy
-    Color col;  // rgba
-    int theta;  // degrees
-    int r;  // distance, unit unknown
+    final Vector2d start;  // xy
+    final Vector2d end;  // xy
+    final Color col;  // rgba
+    final ThetaR thetaR;
+    final double length;
 
-    public ThreadColor(Vector2d start, Vector2d end, int theta, int r, Color col) {
+    public ThreadColor(Vector2d start, Vector2d end, ThetaR thetaR, Color col,double length) {
         this.start = start;
         this.end = end;
-        this.theta = theta;
-        this.r = r;
+        this.thetaR = thetaR;
         this.col = col;
+        this.length = length;
     }
 
     public void display(BufferedImage pg) {
@@ -27,10 +27,6 @@ public class ThreadColor {
 
     @Override
     public String toString() {
-        return theta+","+r+","+ start +","+end+","+ col.getRed()+","+ col.getGreen()+","+ col.getBlue()+","+ col.getAlpha();
-    }
-
-    public int getY(int radius) {
-        return r+radius;
+        return thetaR+","+ start +","+end+","+ col.getRed()+","+ col.getGreen()+","+ col.getBlue()+","+ col.getAlpha();
     }
 }

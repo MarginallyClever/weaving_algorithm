@@ -137,24 +137,48 @@ public class WeavingRadon {
             System.out.println("Open file: "+path);
             try {
                 BufferedImage image = ImageIO.read(new File(path));
-                // make square
-                int d = Math.min(resultsPanel.getWidth(), resultsPanel.getHeight());
-                int s = Math.min(image.getWidth(),image.getHeight());
-                BufferedImage square = new BufferedImage(d,d,BufferedImage.TYPE_INT_ARGB);
-                square.getGraphics().drawImage(image,0,0,d,d,0,0,s,s,null);
+                BufferedImage square = makeSquare(image);
+                BufferedImage grey = makeGreyscale(square);
 
-                radonThreaderA.setImage(square);
+                radonThreaderA.setImage(grey);
                 radonThreaderA.maskCurrentRadonByRemainingThreads();
-                resultsPanel.setImage(square);
+                resultsPanel.setImage(grey);
                 radonPanel.setImage(radonThreaderA.getCurrentRadonImage());
 
-                radonThreaderB.setImage(square);
-                singleLine.setImage(square);
+                radonThreaderB.setImage(grey);
+                singleLine.setImage(grey);
                 singleRadon.setImage(radonThreaderB.getCurrentRadonImage());
             } catch (Exception e) {
                 e.printStackTrace();
             }
         }
+    }
+
+    // make square greyscale
+    private BufferedImage makeGreyscale(BufferedImage square) {
+        BufferedImage grey = new BufferedImage(square.getWidth(),square.getHeight(),BufferedImage.TYPE_INT_ARGB);
+        for(int y=0;y<square.getHeight();++y) {
+            for(int x=0;x<square.getWidth();++x) {
+                int rgb = square.getRGB(x,y);
+                Color c = new Color(rgb);
+                int avg = (int)( (c.getRed()+c.getGreen()+c.getBlue()) / 3.0 );
+                grey.setRGB(x,y,new Color(avg,avg,avg).getRGB());
+            }
+        }
+        return grey;
+    }
+
+    /**
+     * Crop an image to make it square.  cut either the bottom or the right side.
+     * @param image the image to crop
+     * @return a square image
+     */
+    private BufferedImage makeSquare(BufferedImage image) {
+        int d = Math.min(resultsPanel.getWidth(), resultsPanel.getHeight());
+        int s = Math.min(image.getWidth(),image.getHeight());
+        BufferedImage square = new BufferedImage(d,d,BufferedImage.TYPE_INT_ARGB);
+        square.getGraphics().drawImage(image,0,0,d,d,0,0,s,s,null);
+        return square;
     }
 
     public ArrayList<DockingPanel> getWindows() {

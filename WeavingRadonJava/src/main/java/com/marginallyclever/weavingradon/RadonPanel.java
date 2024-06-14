@@ -53,6 +53,11 @@ public class RadonPanel extends JPanel {
         toggleClick.setSelected(showClickPoint);
         toggleClick.addActionListener(e -> {
             showClickPoint=!showClickPoint;
+            if(!showClickPoint) {
+                rayIllustrator.highlightLine(-1,-1);
+            } else {
+                rayIllustrator.highlightLine(showTheta,showR);
+            }
             repaint();
         });
         toolbar.add(toggleClick);
