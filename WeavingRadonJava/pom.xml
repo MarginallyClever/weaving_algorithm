@@ -70,6 +70,23 @@
             <version>1.3.0</version>
         </dependency>
 
+        <!-- qoi image format support -->
+        <dependency>
+            <groupId>me.saharnooby</groupId>
+            <artifactId>qoi-java</artifactId>
+            <version>1.2.1</version>
+        </dependency>
+        <dependency>
+            <groupId>me.saharnooby</groupId>
+            <artifactId>qoi-java-awt</artifactId>
+            <version>1.2.1</version>
+        </dependency>
+        <!-- webp image format support -->
+        <dependency>
+            <groupId>org.sejda.imageio</groupId>
+            <artifactId>webp-imageio</artifactId>
+            <version>0.1.6</version>
+        </dependency>
         <!-- vector stuff -->
         <dependency>
             <groupId>javax.vecmath</groupId>
