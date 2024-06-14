@@ -193,8 +193,8 @@ public class RadonThreader {
         if (bestThread != null && remainingThreads.size() > NUM_NAILS*0.2) {
             remainingThreads.remove(bestThread);
             threads.add(bestThread);
-            markPoint(bestFound);
-            //subtractThreadFromRadon(bestThread);
+            //markPoint(bestFound);
+            subtractThreadFromRadon(bestThread);
         }
     }
 
@@ -259,18 +259,16 @@ public class RadonThreader {
         g2.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
         g2.setRenderingHint(RenderingHints.KEY_STROKE_CONTROL, RenderingHints.VALUE_STROKE_PURE);
 
-        g2.setColor(new Color(0,0,0,0));
+        g2.setColor(new Color(0,0,0,alpha));
         g2.clearRect(0,0, bufferWidth, bufferHeight);
         thread.display(buffer);
         // get the radon transform of that canvas
         BufferedImage threadRadonImage = createRadonTransform(buffer);
 
-        double scale = alpha/255.0;
-
         // subtract the new radon transform from the current radon transform
         for(int x = 0; x < currentRadonImage.getWidth(); x++) {
             for(int y = 0; y < currentRadonImage.getHeight(); y++) {
-                double threadIntensity  = intensity( threadRadonImage.getRGB(x,y)) * scale;
+                double threadIntensity  = intensity( threadRadonImage.getRGB(x,y));
                 double currentIntensity = intensity(currentRadonImage.getRGB(x,y));
                 int v = (int)Math.max(currentIntensity - threadIntensity, 0);
                 Color c = new Color(v,v,v);
