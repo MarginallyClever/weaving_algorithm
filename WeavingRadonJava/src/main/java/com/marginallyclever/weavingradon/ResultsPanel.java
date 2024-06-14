@@ -114,31 +114,40 @@ public class ResultsPanel extends JPanel implements RayIllustrator {
     protected void paintComponent(Graphics g) {
         super.paintComponent(g);
         Dimension dim = toolbar.getPreferredSize();
-        g.translate(0, dim.height);
+
+
+        Graphics2D g2 = (Graphics2D) g.create();
+        g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+        g2.setRenderingHint(RenderingHints.KEY_FRACTIONALMETRICS, RenderingHints.VALUE_FRACTIONALMETRICS_ON);
+        g2.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
+        g2.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
+        g2.setRenderingHint(RenderingHints.KEY_STROKE_CONTROL, RenderingHints.VALUE_STROKE_PURE);
+
+        g2.translate(0, dim.height);
 
         if (showImage && image != null) {
             // Draw the image at (0, 0) with the size of the panel
-            g.drawImage(image, 0, 0, image.getWidth(), image.getHeight(), this);
+            g2.drawImage(image, 0, 0, image.getWidth(), image.getHeight(), this);
         } else {
-            g.setColor(Color.BLACK);
-            g.fillRect(0, 0, getWidth(), getHeight());
+            g2.setColor(Color.BLACK);
+            g2.fillRect(0, 0, getWidth(), getHeight());
         }
 
         if(showNails) {
             int r = NAIL_RADIUS/2;
             // draw a circle that fits in the jpanel
             // fill the ovals
-            g.setColor(Color.RED);
+            g2.setColor(Color.RED);
             for(Vector2d nail : radonThreader.nails) {
-                g.fillOval(
+                g2.fillOval(
                         (int) (nail.x-r),
                         (int) (nail.y-r),
                         NAIL_RADIUS, NAIL_RADIUS);
             }
             // draw the borders
-            g.setColor(Color.WHITE);
+            g2.setColor(Color.WHITE);
             for(Vector2d nail : radonThreader.nails) {
-                g.drawOval(
+                g2.drawOval(
                         (int)(nail.x-r),
                         (int)(nail.y-r),
                         NAIL_RADIUS,NAIL_RADIUS);
@@ -147,8 +156,8 @@ public class ResultsPanel extends JPanel implements RayIllustrator {
 
         if(showThread) {
             for(ThreadColor tc : radonThreader.threads) {
-                g.setColor(tc.col);
-                g.drawLine(
+                g2.setColor(tc.col);
+                g2.drawLine(
                         (int)tc.start.x,
                         (int)tc.start.y,
                         (int)tc.end.x,
@@ -159,7 +168,7 @@ public class ResultsPanel extends JPanel implements RayIllustrator {
         // show the line theta/r, where theta is the angle and r is the distance from the center.
         if(image != null && showTheta>=0 && showTheta<180) {
             double theta = Math.toRadians(showTheta);
-            g.setColor(Color.GREEN);
+            g2.setColor(Color.GREEN);
             var w2 = image.getWidth()/2;
             var h2 = image.getHeight()/2;
 
@@ -172,10 +181,10 @@ public class ResultsPanel extends JPanel implements RayIllustrator {
             int x1 = (int)(w2 + r * c + d * s);
             int y1 = (int)(h2 + r * s - d * c);
 
-            g.drawLine(x0,y0,x1,y1);
+            g2.drawLine(x0,y0,x1,y1);
         }
 
-        g.translate(0,-dim.height);
+        g2.translate(0,-dim.height);
     }
 
     public void setRadon(RadonThreader radonThreader, RadonPanel radonPanel) {
