@@ -3,30 +3,24 @@ package com.marginallyclever.weavingradon;
 import javax.vecmath.Vector2d;
 import java.awt.*;
 import java.awt.image.BufferedImage;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.stream.IntStream;
 import java.util.function.Consumer;
 
 
 public class RadonThreader {
-    public static final int NUM_NAILS = 150;
-    public final int alpha = 64;
+    private final double LENGTH_FACTOR = 0.94;
+    private final double[] cosTheta = new double[180];
+    private final double[] sinTheta = new double[180];
 
-    public final List<Vector2d> nails = new ArrayList<>();
-    public final List<ThreadColor> selectedThreads = new ArrayList<>();
-    public final List<ThreadColor> potentialThreads = new ArrayList<>();
-
-    private BufferedImage buffer;
+    private BufferedImage oneThreadRadonTransform;
     private BufferedImage currentRadonImage;
 
     private int bufferWidth;
     private int bufferHeight;
     private Vector2d center;
     public int radius;
-    private int diag;
-    private final double[] cosTheta = new double[180];
-    private final double[] sinTheta = new double[180];
+    private int diameter;
+    private Loom loom;
 
     public RadonThreader() {
         super();
@@ -39,19 +33,19 @@ public class RadonThreader {
         }
     }
 
+    public void setLoom(Loom loom) {
+        this.loom = loom;
+    }
+
     public void setImage(BufferedImage referenceImage) {
         this.bufferWidth = referenceImage.getWidth();
         this.bufferHeight = referenceImage.getHeight();
 
         center = new Vector2d(bufferWidth / 2.0, bufferHeight / 2.0);
         radius = bufferWidth / 2;
-        diag = bufferWidth;//(int)(radius*2);
+        diameter = bufferWidth;
 
-        buffer = new BufferedImage(bufferWidth, bufferHeight, BufferedImage.TYPE_INT_ARGB);
-
-        // Draw initial image to buffer
-        createNails();
-        createThreads();
+        oneThreadRadonTransform = new BufferedImage(bufferWidth, bufferHeight, BufferedImage.TYPE_INT_ARGB);
 
         System.out.println("initial radon transform");
         // Apply radon transform to the initial buffer
@@ -59,56 +53,8 @@ public class RadonThreader {
         System.out.println("done");
     }
 
-    private void createNails() {
-        System.out.println("createNails");
-        nails.clear();
-        for(int i=0;i<NUM_NAILS;++i) {
-            double angle = i * Math.PI * 2 / NUM_NAILS;
-            nails.add(new Vector2d(
-                    center.x + Math.sin(angle) * radius,
-                    center.y + Math.cos(angle) * radius
-            ));
-        }
-    }
-
-    /**
-     * allocate all the threads once.  includes start, end, theta, r, and color.
-     */
-    private void createThreads() {
-        System.out.println("createThreads");
-        double maxR = 0;
-        for (int i = 0; i < NUM_NAILS; i++) {
-            Vector2d start = nails.get(i);
-            double sx = start.x - center.x;
-            double sy = start.y - center.y;
-
-            for (int j = i + 1; j < NUM_NAILS; j++) {
-                Vector2d end = nails.get(j);
-                double dx = end.x - start.x;
-                double dy = end.y - start.y;
-                double len = Math.sqrt(dx * dx + dy * dy);
-
-                int theta = (int)Math.toDegrees(Math.atan2(-dx, dy));
-
-                // Ensure theta is within [0-180)
-                if(theta < 0) theta += 180;
-                if(theta >= 180) theta -= 180;
-
-                double angle = Math.toRadians(theta);
-                int r = (int)(sx * Math.cos(angle)
-                            + sy * Math.sin(angle));
-
-                //System.out.println("theta="+theta+" r="+r);
-                maxR = Math.max(maxR, Math.abs(r));
-                ThreadColor thread = new ThreadColor(start, end, new ThetaR(theta, r), new Color(255, 255, 255,alpha),len);
-                potentialThreads.add(thread);
-            }
-        }
-        System.out.println("maxR="+maxR+" image size="+bufferWidth+"x"+bufferHeight);
-    }
-
     public BufferedImage createRadonTransform(BufferedImage pg) {
-        BufferedImage radonImage = new BufferedImage(180, diag, BufferedImage.TYPE_INT_ARGB);
+        BufferedImage radonImage = new BufferedImage(180, diameter, BufferedImage.TYPE_INT_ARGB);
 
         IntStream.range(0, 180).parallel().forEach(theta -> {
             double c = cosTheta[theta];
@@ -120,7 +66,7 @@ public class RadonThreader {
                 sum[0] = 0;
                 //sum[1] = 0;
                 //sum[2] = 0;
-                count[0] = 1;
+                count[0] = 0;
 
                 // Compute the start and end points for the line at this angle and distance
                 // Calculate intersections with the circle
@@ -144,12 +90,12 @@ public class RadonThreader {
                 });
 
                 int ri = r + radius;
-                if (ri >= 0 && ri < diag && count[0]>0) {
-                    int r2 = (int)( (double)sum[0] / (double)count[0] );
+                if (ri >= 0 && ri < diameter && count[0]>0) {
+                    int r2 = (int)( (double)sum[0] / Math.pow(count[0],LENGTH_FACTOR) );
                     //int g2 = (int)( (double)sum[1] / (double)count[0] );
                     //int b2 = (int)( (double)sum[2] / (double)count[0] );
                     //int v = (int)Math.min(255, Math.max(0, (r2 + g2 + b2) / 3.0));
-                    int v = r2;
+                    int v = Math.max(0, Math.min(255, r2));
                     radonImage.setRGB(theta, ri, (new Color(v,v,v).getRGB()));
                 }
             }
@@ -161,12 +107,23 @@ public class RadonThreader {
     /**
      * Mask the current radon image with the remaining threads.
      */
-    public void maskCurrentRadonByRemainingThreads() {
+    public void maskCurrentRadonByAllThreads() {
         System.out.println("filterRadonByThreads");
         //
         var filter = new BufferedImage(currentRadonImage.getWidth(), currentRadonImage.getHeight(), BufferedImage.TYPE_INT_ARGB);
-        for(ThreadColor thread : potentialThreads) {
-            filter.setRGB(thread.thetaR.theta, thread.thetaR.getY(radius), Color.WHITE.getRGB());
+        for(ThreadColor thread : loom.potentialThreads) {
+            try {
+                filter.setRGB(thread.thetaR.theta, thread.thetaR.getY(radius), Color.WHITE.getRGB());
+            } catch (Exception e) {
+                System.out.println("OOB "+thread.thetaR);
+            }
+        }
+        for(ThreadColor thread : loom.selectedThreads) {
+            try {
+                filter.setRGB(thread.thetaR.theta, thread.thetaR.getY(radius), Color.WHITE.getRGB());
+            } catch (Exception e) {
+                System.out.println("OOB "+thread.thetaR);
+            }
         }
 
         // mask currentRadonImage with filter.
@@ -180,16 +137,13 @@ public class RadonThreader {
     }
 
     public void addNextBestThread() {
-        if (potentialThreads.isEmpty()) return;
+        if (loom.potentialThreads.isEmpty()) return;
 
         ThetaR bestFound = getNextBestThread();
-        ThreadColor bestThread = findThreadForMaxIntensity(bestFound);
-        if (bestThread != null && potentialThreads.size() > NUM_NAILS*0.2) {
-            potentialThreads.remove(bestThread);
-            selectedThreads.add(bestThread);
-            //markPoint(bestFound);
-            subtractThreadFromRadon(bestThread);
-        }
+        ThreadColor bestThread = loom.findThreadForMaxIntensity(bestFound);
+        loom.addNextBestThread(bestThread);
+
+        subtractThreadFromRadon(bestThread);
     }
 
     /**
@@ -217,26 +171,6 @@ public class RadonThreader {
         return bestFound;
     }
 
-    ThreadColor findThreadForMaxIntensity(ThetaR target) {
-        ThreadColor nearestThread = null;
-        double minDistance = Double.MAX_VALUE;
-
-        for (ThreadColor thread : potentialThreads) {
-            double x = thread.thetaR.theta - target.theta;
-            double y = thread.thetaR.r - target.r;
-            double distanceSquared = ( x*x + y*y );
-            if (distanceSquared < minDistance) {
-                minDistance = distanceSquared;
-                nearestThread = thread;
-            }
-        }
-
-        //if(minDistance>2) return null;
-        //System.out.println("matches "+ nearestThread );
-        //System.out.println(threads.size() +"/"+remainingThreads.size());
-        return nearestThread;
-    }
-
     void markPoint(ThetaR best) {
         //System.out.println("Mark "+best.theta+","+best.r);
         currentRadonImage.setRGB(best.theta, best.getY(radius), Color.BLACK.getRGB());
@@ -244,7 +178,7 @@ public class RadonThreader {
 
     void subtractThreadFromRadon(ThreadColor thread) {
         // draw one thread to a black canvas
-        var g = buffer.getGraphics();
+        var g = oneThreadRadonTransform.getGraphics();
 
         Graphics2D g2 = (Graphics2D) g.create();
         g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
@@ -253,11 +187,11 @@ public class RadonThreader {
         g2.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
         g2.setRenderingHint(RenderingHints.KEY_STROKE_CONTROL, RenderingHints.VALUE_STROKE_PURE);
 
-        g2.setColor(new Color(0,0,0,alpha));
+        g2.setColor(new Color(0,0,0,loom.alpha));
         g2.clearRect(0,0, bufferWidth, bufferHeight);
-        thread.display(buffer);
+        thread.display(oneThreadRadonTransform);
         // get the radon transform of that canvas
-        BufferedImage threadRadonImage = createRadonTransform(buffer);
+        BufferedImage threadRadonImage = createRadonTransform(oneThreadRadonTransform);
 
         // subtract the new radon transform from the current radon transform
         for(int x = 0; x < currentRadonImage.getWidth(); x++) {
@@ -302,11 +236,16 @@ public class RadonThreader {
         }
     }
 
-    public boolean shouldStop() {
-        return potentialThreads.size() <= NUM_NAILS*0.2;
-    }
-
     public BufferedImage getCurrentRadonImage() {
         return currentRadonImage;
+    }
+
+    public boolean shouldStop() {
+        return loom.shouldStop();
+    }
+
+    public void setLoomAndImage(Loom loom, BufferedImage grey) {
+        setLoom(loom);
+        setImage(grey);
     }
 }

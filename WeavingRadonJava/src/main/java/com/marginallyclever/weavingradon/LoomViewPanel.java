@@ -5,7 +5,8 @@ import javax.vecmath.Vector2d;
 import java.awt.*;
 import java.awt.image.BufferedImage;
 
-public class ResultsPanel extends JPanel implements RayIllustrator {
+public class LoomViewPanel extends JPanel implements RayIllustrator {
+    private Loom loom;
     public static final int NAIL_RADIUS = 3;
     public static final int TOOLBAR_HEIGHT = 30;
 
@@ -22,9 +23,9 @@ public class ResultsPanel extends JPanel implements RayIllustrator {
 
     JToggleButton togglePlay = new JToggleButton("Play");
 
-    public ResultsPanel() {
+    public LoomViewPanel() {
         super(new BorderLayout());
-        setName("Viewport");
+        setName("Loom");
 
         // Create a Timer that fires every 100 milliseconds
         Timer timer = new Timer(50, (e) -> {
@@ -100,6 +101,7 @@ public class ResultsPanel extends JPanel implements RayIllustrator {
 
     public void setImage(BufferedImage image) {
         this.image = image;
+
         repaint();
     }
 
@@ -108,6 +110,12 @@ public class ResultsPanel extends JPanel implements RayIllustrator {
         this.showTheta = theta;
         this.showR = r;
         repaint();
+    }
+
+    @Override
+    public void setLoomAndImage(Loom loom, BufferedImage grey) {
+        setLoom(loom);
+        setImage(grey);
     }
 
     @Override
@@ -133,24 +141,24 @@ public class ResultsPanel extends JPanel implements RayIllustrator {
             g2.fillRect(0, 0, getWidth(), getHeight());
         }
 
-        if(showNails) {
+        if(showNails && loom !=null) {
             int r = NAIL_RADIUS/2;
-            g2.translate(r,r);
+            g2.translate(-r,-r);
             // fill the ovals
             g2.setColor(Color.RED);
-            for(Vector2d nail : radonThreader.nails) {
+            for(Vector2d nail : loom.nails) {
                 g2.fillOval((int)nail.x, (int)nail.y, NAIL_RADIUS, NAIL_RADIUS);
             }
             // draw the borders
             g2.setColor(Color.WHITE);
-            for(Vector2d nail : radonThreader.nails) {
+            for(Vector2d nail : loom.nails) {
                 g2.drawOval((int)nail.x, (int)nail.y, NAIL_RADIUS, NAIL_RADIUS);
             }
-            g2.translate(-r,-r);
+            g2.translate(r,r);
         }
 
-        if(showThread) {
-            for(ThreadColor tc : radonThreader.selectedThreads) {
+        if(showThread && loom !=null) {
+            for(ThreadColor tc : loom.selectedThreads) {
                 g2.setColor(tc.col);
                 g2.drawLine((int)tc.start.x,
                             (int)tc.start.y,
@@ -184,5 +192,9 @@ public class ResultsPanel extends JPanel implements RayIllustrator {
     public void setRadon(RadonThreader radonThreader, RadonPanel radonPanel) {
         this.radonThreader = radonThreader;
         this.radonPanel = radonPanel;
+    }
+
+    public void setLoom(Loom loom) {
+        this.loom = loom;
     }
 }

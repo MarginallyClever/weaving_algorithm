@@ -8,8 +8,9 @@ import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.io.File;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 
-import ModernDocking.DockingRegion;
 import ModernDocking.app.Docking;
 import ModernDocking.app.RootDockingPanel;
 import ModernDocking.ext.ui.DockingUI;
@@ -26,7 +27,8 @@ public class WeavingRadon {
     private final ArrayList<DockingPanel> windows = new ArrayList<>();
     private final JFileChooser fileChooser;
 
-    private final ResultsPanel resultsPanel;
+    private Loom loom;
+    private final LoomViewPanel loomViewPanel;
     private final RadonPanel radonPanel;
     public static final RadonThreader radonThreaderA = new RadonThreader();
 
@@ -43,14 +45,14 @@ public class WeavingRadon {
 
         frame = new JFrame("Radon Weaving");
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        frame.setSize(WIDTH, HEIGHT + TITLEBAR_HEIGHT + DOCKING_TAB_HEIGHT + ResultsPanel.TOOLBAR_HEIGHT);
+        frame.setSize(WIDTH, HEIGHT + TITLEBAR_HEIGHT + DOCKING_TAB_HEIGHT + LoomViewPanel.TOOLBAR_HEIGHT);
         //frame.setLocationByPlatform(true);
         frame.setLocationRelativeTo(null);
 
         // create panels
-        resultsPanel = new ResultsPanel();
-        radonPanel = new RadonPanel(resultsPanel);
-        resultsPanel.setRadon(radonThreaderA, radonPanel);
+        loomViewPanel = new LoomViewPanel();
+        radonPanel = new RadonPanel(loomViewPanel);
+        loomViewPanel.setRadon(radonThreaderA, radonPanel);
 
         singleLine = new OneLineOnImage();
         singleRadon = new RadonPanel(singleLine);
@@ -63,7 +65,9 @@ public class WeavingRadon {
         frame.setJMenuBar(new MainMenu(this));
 
         // create a file chooser for images
-        String name = String.join(", ", ImageIO.getReaderFileSuffixes());
+        String [] list = ImageIO.getReaderFileSuffixes();
+        Arrays.sort(list);
+        String name = String.join(", ", list);
         name = "Image files (" + name + ")";
         fileChooser = new PersistentJFileChooser();
         fileChooser.setFileFilter(new FileNameExtensionFilter(name, ImageIO.getReaderFileSuffixes()));
@@ -104,7 +108,7 @@ public class WeavingRadon {
      */
     private void createDefaultLayout() {
         DockingPanel resultsView = new DockingPanel("8e50154c-a149-4e95-9db5-4611d24cc0cc", "View");
-        resultsView.add(resultsPanel, BorderLayout.CENTER);
+        resultsView.add(loomViewPanel, BorderLayout.CENTER);
         windows.add(resultsView);
 
         DockingPanel radonView = new DockingPanel("f2308391-8388-4f90-89f0-61caca03eb18", "View R");
@@ -124,7 +128,7 @@ public class WeavingRadon {
         for (DockingPanel w : windows) {
             Docking.undock(w);
         }
-        Docking.dock(windows.get(0), frame);
+        Docking.dock(windows.getFirst(), frame);
         //Docking.dock(windows.get(0), windows.get(2), DockingRegion.CENTER);
         //Docking.dock(windows.get(3), frame, DockingRegion.EAST);
         //Docking.dock(windows.get(1), windows.get(3), DockingRegion.CENTER);
@@ -140,16 +144,17 @@ public class WeavingRadon {
                 BufferedImage square = makeSquare(image);
                 BufferedImage grey = makeGreyscale(square);
 
-                radonThreaderA.setImage(grey);
-                radonThreaderA.maskCurrentRadonByRemainingThreads();
-                resultsPanel.setImage(grey);
+                loom = new Loom(square.getWidth()/2, 150);
+                radonThreaderA.setLoomAndImage(loom,grey);
+                radonThreaderA.maskCurrentRadonByAllThreads();
+                loomViewPanel.setLoomAndImage(loom,grey);
                 radonPanel.setImage(radonThreaderA.getCurrentRadonImage());
 
-                radonThreaderB.setImage(grey);
-                singleLine.setImage(grey);
+                radonThreaderB.setLoomAndImage(loom,grey);
+                singleLine.setLoomAndImage(loom,grey);
                 singleRadon.setImage(radonThreaderB.getCurrentRadonImage());
             } catch (Exception e) {
-                e.printStackTrace();
+                System.out.println("Failed to load file.");
             }
         }
     }
@@ -174,7 +179,7 @@ public class WeavingRadon {
      * @return a square image
      */
     private BufferedImage makeSquare(BufferedImage image) {
-        int d = Math.min(resultsPanel.getWidth(), resultsPanel.getHeight());
+        int d = Math.min(loomViewPanel.getWidth(), loomViewPanel.getHeight());
         int s = Math.min(image.getWidth(),image.getHeight());
         BufferedImage square = new BufferedImage(d,d,BufferedImage.TYPE_INT_ARGB);
         square.getGraphics().drawImage(image,0,0,d,d,0,0,s,s,null);

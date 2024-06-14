@@ -14,8 +14,9 @@ public class OneLineOnImage extends JPanel implements RayIllustrator {
     private int showR=-1;
     private RadonThreader radonThreader;
     private RadonPanel singleRadon;
-    ReentrantLock lock = new ReentrantLock();
+    private final ReentrantLock lock = new ReentrantLock();
     private Component oldLabel;
+    private Loom loom;
 
     public OneLineOnImage() {
         super(new BorderLayout());
@@ -33,14 +34,18 @@ public class OneLineOnImage extends JPanel implements RayIllustrator {
         toolbar.add(allThreads);
     }
 
+    public void setLoom(Loom loom) {
+        this.loom = loom;
+    }
+
     private void drawAllThreads() {
         var g = image.getGraphics();
         g.setColor(Color.BLACK);
         g.fillRect(0,0,image.getWidth(),image.getHeight());
-        for(ThreadColor t : radonThreader.selectedThreads) {
+        for(ThreadColor t : loom.selectedThreads) {
             t.display(image);
         }
-        for(ThreadColor t : radonThreader.potentialThreads) {
+        for(ThreadColor t : loom.potentialThreads) {
             t.display(image);
         }
         var radon = radonThreader.createRadonTransform(image);
@@ -117,5 +122,11 @@ public class OneLineOnImage extends JPanel implements RayIllustrator {
             var radon = radonThreader.createRadonTransform(image);
             singleRadon.setImage(radon);
         }
+    }
+
+    @Override
+    public void setLoomAndImage(Loom loom, BufferedImage grey) {
+        setLoom(loom);
+        setImage(grey);
     }
 }
