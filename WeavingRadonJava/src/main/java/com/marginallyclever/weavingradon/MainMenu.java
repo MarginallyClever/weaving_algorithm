@@ -1,5 +1,7 @@
 package com.marginallyclever.weavingradon;
 
+import ModernDocking.app.DockableMenuItem;
+
 import javax.swing.*;
 
 public class MainMenu extends JMenuBar {
@@ -14,5 +16,12 @@ public class MainMenu extends JMenuBar {
         openMenuItem.addActionListener(parent::openFile);
         fileMenu.add(openMenuItem);
         add(fileMenu);
+
+        JMenu viewMenu = new JMenu("Windows");
+        parent.getWindows().forEach(w -> {
+            DockableMenuItem item = new DockableMenuItem(w.getPersistentID(),w.getTabText());
+            viewMenu.add(item);
+        });
+        add(viewMenu);
     }
 }

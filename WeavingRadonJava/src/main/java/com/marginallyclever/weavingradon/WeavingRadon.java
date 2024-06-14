@@ -17,7 +17,7 @@ import com.formdev.flatlaf.FlatLaf;
 import com.formdev.flatlaf.FlatLightLaf;
 
 public class WeavingRadon {
-    public static final int WIDTH = 1000;
+    public static final int WIDTH = 800;
     public static final int HEIGHT = 800;
     public static final int TITLEBAR_HEIGHT = 30;
     public static final int DOCKING_TAB_HEIGHT = 30;
@@ -124,10 +124,10 @@ public class WeavingRadon {
         for (DockingPanel w : windows) {
             Docking.undock(w);
         }
-        Docking.dock(windows.get(2), frame);
-        Docking.dock(windows.get(0), windows.get(2), DockingRegion.CENTER);
-        Docking.dock(windows.get(3), frame, DockingRegion.EAST);
-        Docking.dock(windows.get(1), windows.get(3), DockingRegion.CENTER);
+        Docking.dock(windows.get(0), frame);
+        //Docking.dock(windows.get(0), windows.get(2), DockingRegion.CENTER);
+        //Docking.dock(windows.get(3), frame, DockingRegion.EAST);
+        //Docking.dock(windows.get(1), windows.get(3), DockingRegion.CENTER);
     }
 
     public void openFile(ActionEvent actionEvent) {
@@ -155,5 +155,9 @@ public class WeavingRadon {
                 e.printStackTrace();
             }
         }
+    }
+
+    public ArrayList<DockingPanel> getWindows() {
+        return windows;
     }
 }
