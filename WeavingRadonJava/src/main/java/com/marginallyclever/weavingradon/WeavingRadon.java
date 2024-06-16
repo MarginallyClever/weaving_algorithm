@@ -9,7 +9,6 @@ import java.awt.event.ActionEvent;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 
 import ModernDocking.app.Docking;
 import ModernDocking.app.RootDockingPanel;
@@ -22,6 +21,7 @@ public class WeavingRadon {
     public static final int HEIGHT = 800;
     public static final int TITLEBAR_HEIGHT = 30;
     public static final int DOCKING_TAB_HEIGHT = 30;
+    public static final int ALPHA = 64;
 
     private final JFrame frame;
     private final ArrayList<DockingPanel> windows = new ArrayList<>();
@@ -30,11 +30,16 @@ public class WeavingRadon {
     private Loom loom;
     private final LoomViewPanel loomViewPanel;
     private final RadonPanel radonPanel;
-    public static final RadonThreader radonThreaderA = new RadonThreader();
+
+    //public final RadonThreader myThreader = new SingleThreader(Color.WHITE);
+    public final GroupRadonThreader myThreader = new GroupRadonThreader();
+    public final SingleThreader radonThreaderRed   = new SingleThreader(new Color(255,0,0, ALPHA));
+    public final SingleThreader radonThreaderGreen = new SingleThreader(new Color(0,255,0, ALPHA));
+    public final SingleThreader radonThreaderBlue  = new SingleThreader(new Color(0,0,255, ALPHA));
 
     private final OneLineOnImage singleLine;
     private final RadonPanel singleRadon;
-    public static final RadonThreader radonThreaderB = new RadonThreader();
+    public final SingleThreader radonThreaderB = new SingleThreader(new Color(255,255,255));
 
     public static void main(String[] args) {
         SwingUtilities.invokeLater(WeavingRadon::new);
@@ -52,11 +57,15 @@ public class WeavingRadon {
         // create panels
         loomViewPanel = new LoomViewPanel();
         radonPanel = new RadonPanel(loomViewPanel);
-        loomViewPanel.setRadon(radonThreaderA, radonPanel);
+        loomViewPanel.setRadon(myThreader, radonPanel);
 
         singleLine = new OneLineOnImage();
         singleRadon = new RadonPanel(singleLine);
         singleLine.setRadon(radonThreaderB,singleRadon);
+
+        myThreader.addThreader(radonThreaderRed);
+        myThreader.addThreader(radonThreaderGreen);
+        myThreader.addThreader(radonThreaderBlue);
 
         // setup the docking system and dock the panels.
         initDocking();
@@ -140,21 +149,23 @@ public class WeavingRadon {
             String path = fileChooser.getSelectedFile().getAbsolutePath();
             System.out.println("Open file: "+path);
             try {
-                BufferedImage image = ImageIO.read(new File(path));
-                BufferedImage square = makeSquare(image);
+                BufferedImage square = makeSquare(ImageIO.read(new File(path)));
+                // build the nails and threads
+                loom = new Loom(square.getWidth()/2, 100);
+                // build a radon transform for every thread, based on the color filter for that threader.
+                myThreader.setLoomAndImage(loom,square);
+                myThreader.maskCurrentRadonByAllThreads();
+
+                loomViewPanel.setLoomAndImage(loom,square);
+                radonPanel.setRadonTransform(myThreader.getRadonTransform());
+
                 BufferedImage grey = makeGreyscale(square);
-
-                loom = new Loom(square.getWidth()/2, 150);
-                radonThreaderA.setLoomAndImage(loom,grey);
-                radonThreaderA.maskCurrentRadonByAllThreads();
-                loomViewPanel.setLoomAndImage(loom,grey);
-                radonPanel.setImage(radonThreaderA.getCurrentRadonImage());
-
                 radonThreaderB.setLoomAndImage(loom,grey);
                 singleLine.setLoomAndImage(loom,grey);
-                singleRadon.setImage(radonThreaderB.getCurrentRadonImage());
+                singleRadon.setRadonTransform(radonThreaderB.getRadonTransform());
             } catch (Exception e) {
                 System.out.println("Failed to load file.");
+                e.printStackTrace();
             }
         }
     }
@@ -179,10 +190,19 @@ public class WeavingRadon {
      * @return a square image
      */
     private BufferedImage makeSquare(BufferedImage image) {
-        int d = Math.min(loomViewPanel.getWidth(), loomViewPanel.getHeight());
+        int d = Math.min(WIDTH,HEIGHT);
         int s = Math.min(image.getWidth(),image.getHeight());
         BufferedImage square = new BufferedImage(d,d,BufferedImage.TYPE_INT_ARGB);
-        square.getGraphics().drawImage(image,0,0,d,d,0,0,s,s,null);
+
+        Graphics2D g2 = square.createGraphics();
+        g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+        g2.setRenderingHint(RenderingHints.KEY_FRACTIONALMETRICS, RenderingHints.VALUE_FRACTIONALMETRICS_ON);
+        g2.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
+        g2.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
+        g2.setRenderingHint(RenderingHints.KEY_STROKE_CONTROL, RenderingHints.VALUE_STROKE_PURE);
+
+        g2.drawImage(image,0,0,d,d,0,0,s,s,null);
+        g2.dispose();
         return square;
     }
 

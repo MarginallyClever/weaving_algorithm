@@ -4,14 +4,13 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
-import java.awt.image.BufferedImage;
 
 /**
  * RadonPanel listens for mouse events.  when the cursor is over the image it will tell the Viewport
  * to display the theta and r values at that point.
  */
 public class RadonPanel extends JPanel {
-    private BufferedImage image;
+    private RadonTransform radonTransform;
     private final RayIllustrator rayIllustrator;
     private int showR,showTheta;
     private boolean showClickPoint = true;
@@ -66,29 +65,32 @@ public class RadonPanel extends JPanel {
     }
 
     public void updateThetaR(MouseEvent e) {
-        if(image==null) return;
+        if(radonTransform ==null) return;
         Dimension d = toolbar.getPreferredSize();
         showTheta = e.getX();
         showR = e.getY()-d.height;
-        if(showTheta<0 || showR<0 || showTheta>=image.getWidth() || showR>=image.getHeight()) return;
+        if(showTheta<0 || showR<0 || showTheta>= radonTransform.getWidth() || showR>= radonTransform.getHeight()) return;
 
         //System.out.println(theta+","+r);
         rayIllustrator.highlightLine(showTheta,showR);
     }
 
-    public void setImage(BufferedImage image) {
-        this.image = image;
+    public void setRadonTransform(RadonTransform image) {
+        this.radonTransform = image;
         repaint();
     }
 
     @Override
     protected void paintComponent(Graphics g) {
         super.paintComponent(g);
-        if(image==null) return;
+        if(radonTransform ==null) return;
+        Image graph = radonTransform.getGraph();
+        if(graph==null) return;
 
         Dimension d = toolbar.getPreferredSize();
         g.translate(0,d.height);
-        g.drawImage(image,0,0,image.getWidth(),image.getHeight(),this);
+
+        g.drawImage(radonTransform.getGraph(),0,0, radonTransform.getWidth(), radonTransform.getHeight(),this);
         if(showClickPoint) {
             g.setColor(Color.RED);
             g.fillOval(showTheta - 2, showR - 2, 4, 4);

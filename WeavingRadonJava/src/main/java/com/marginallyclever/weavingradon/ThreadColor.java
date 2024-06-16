@@ -7,9 +7,9 @@ import java.awt.image.BufferedImage;
 public class ThreadColor {
     final Vector2d start;  // xy
     final Vector2d end;  // xy
-    final Color col;  // rgba
     final ThetaR thetaR;
     final double length;
+    Color col;  // rgba
 
     public ThreadColor(Vector2d start, Vector2d end, ThetaR thetaR, Color col,double length) {
         this.start = start;
@@ -19,10 +19,25 @@ public class ThreadColor {
         this.length = length;
     }
 
-    public void display(BufferedImage pg) {
-        Graphics g = pg.getGraphics();
-        g.setColor(col);
-        g.drawLine((int)start.x, (int)start.y, (int)end.x, (int)end.y);
+    public ThreadColor(ThreadColor b) {
+        this.start = new Vector2d(b.start);
+        this.end = new Vector2d(b.end);
+        this.thetaR = new ThetaR(b.thetaR.theta,b.thetaR.r);
+        this.col = new Color(b.col.getRGB());
+        this.length = b.length;
+    }
+
+    public void display(BufferedImage image) {
+        Graphics2D g2 = image.createGraphics();
+        g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+        g2.setRenderingHint(RenderingHints.KEY_FRACTIONALMETRICS, RenderingHints.VALUE_FRACTIONALMETRICS_ON);
+        g2.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
+        g2.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
+        g2.setRenderingHint(RenderingHints.KEY_STROKE_CONTROL, RenderingHints.VALUE_STROKE_PURE);
+
+        g2.setColor(col);
+        g2.drawLine((int)start.x, (int)start.y, (int)end.x, (int)end.y);
+        g2.dispose();
     }
 
     @Override

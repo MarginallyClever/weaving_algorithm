@@ -11,7 +11,6 @@ import java.util.List;
 public class Loom {
     public final int numNails;
     public final int radius;
-    public final int alpha = 64;
 
     public final List<Vector2d> nails = new ArrayList<>();
     public final List<ThreadColor> selectedThreads = new ArrayList<>();
@@ -68,7 +67,7 @@ public class Loom {
 
                 //System.out.println("theta="+theta+" r="+r);
                 maxR = Math.max(maxR, Math.abs(r));
-                ThreadColor thread = new ThreadColor(start, end, new ThetaR(theta, r), new Color(255, 255, 255,alpha),len);
+                ThreadColor thread = new ThreadColor(start, end, new ThetaR(theta, r), new Color(255, 255, 255,WeavingRadon.ALPHA),len);
                 potentialThreads.add(thread);
             }
         }
@@ -80,7 +79,7 @@ public class Loom {
         selectedThreads.add(bestThread);
     }
 
-    public ThreadColor findThreadForMaxIntensity(ThetaR target) {
+    public ThreadColor findThreadClosestToThetaR(ThetaR target) {
         ThreadColor nearestThread = null;
         double minDistance = Double.MAX_VALUE;
 

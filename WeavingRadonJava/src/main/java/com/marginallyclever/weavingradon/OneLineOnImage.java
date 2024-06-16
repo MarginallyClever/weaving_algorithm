@@ -6,7 +6,7 @@ import java.awt.image.BufferedImage;
 import java.util.concurrent.locks.ReentrantLock;
 
 /**
- * Displays a single {@link ThreadColor} on a {@link BufferedImage}.  Used for debugging the {@link RadonThreader}.
+ * Displays a single {@link ThreadColor} on a {@link BufferedImage}.  Used for debugging the {@link SingleThreader}.
  */
 public class OneLineOnImage extends JPanel implements RayIllustrator {
     private BufferedImage image;
@@ -42,14 +42,14 @@ public class OneLineOnImage extends JPanel implements RayIllustrator {
         var g = image.getGraphics();
         g.setColor(Color.BLACK);
         g.fillRect(0,0,image.getWidth(),image.getHeight());
+
         for(ThreadColor t : loom.selectedThreads) {
             t.display(image);
         }
         for(ThreadColor t : loom.potentialThreads) {
             t.display(image);
         }
-        var radon = radonThreader.createRadonTransform(image);
-        singleRadon.setImage(radon);
+        singleRadon.setRadonTransform(new RadonTransform(image));
     }
 
     public void setImage(BufferedImage srcImage) {
@@ -63,8 +63,7 @@ public class OneLineOnImage extends JPanel implements RayIllustrator {
         if(oldLabel!=null) remove(oldLabel);
         add(oldLabel = new JLabel(new ImageIcon(image)), BorderLayout.CENTER);
         repaint();
-        var radon = radonThreader.createRadonTransform(image);
-        singleRadon.setImage(radon);
+        singleRadon.setRadonTransform(new RadonTransform(image));
     }
 
     @Override
@@ -93,9 +92,15 @@ public class OneLineOnImage extends JPanel implements RayIllustrator {
         // show the line theta/r, where theta is the angle and r is the distance from the center.
         if(image == null) return;
 
-        var g = image.getGraphics();
-        g.setColor(Color.BLACK);
-        g.fillRect(0,0,image.getWidth(),image.getHeight());
+        Graphics2D g2 = image.createGraphics();
+        g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+        g2.setRenderingHint(RenderingHints.KEY_FRACTIONALMETRICS, RenderingHints.VALUE_FRACTIONALMETRICS_ON);
+        g2.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
+        g2.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
+        g2.setRenderingHint(RenderingHints.KEY_STROKE_CONTROL, RenderingHints.VALUE_STROKE_PURE);
+
+        g2.setColor(Color.BLACK);
+        g2.fillRect(0,0,image.getWidth(),image.getHeight());
 
         if(showTheta>=0 && showTheta<180) {
             //System.out.println("showTheta="+showTheta+" showR="+showR);
@@ -113,14 +118,14 @@ public class OneLineOnImage extends JPanel implements RayIllustrator {
             int x1 = (int)(w2 + r * c + d * s);
             int y1 = (int)(h2 + r * s - d * c);
 
-            g.setColor(Color.WHITE);
-            g.drawLine(x0, y0, x1, y1);
+            g2.setColor(Color.WHITE);
+            g2.drawLine(x0, y0, x1, y1);
         }
+        g2.dispose();
         repaint();
         if(radonThreader!=null && singleRadon !=null) {
             System.out.println("c");
-            var radon = radonThreader.createRadonTransform(image);
-            singleRadon.setImage(radon);
+            singleRadon.setRadonTransform(new RadonTransform(image));
         }
     }
 

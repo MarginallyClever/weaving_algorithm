@@ -3,6 +3,7 @@ package com.marginallyclever.weavingradon;
 public class ThetaR {
     public int theta;
     public int r;
+    public double intensity;
 
     public ThetaR(int theta, int r) {
         set(theta,r);

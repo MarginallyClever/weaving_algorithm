@@ -30,7 +30,7 @@ public class LoomViewPanel extends JPanel implements RayIllustrator {
         // Create a Timer that fires every 100 milliseconds
         Timer timer = new Timer(50, (e) -> {
             makeStep();
-            if(radonThreader == null || radonThreader.shouldStop()) {
+            if(loom == null || loom.shouldStop()) {
                 togglePlay.setSelected(false);
             }
             invalidate();
@@ -65,7 +65,7 @@ public class LoomViewPanel extends JPanel implements RayIllustrator {
 
         JButton nextBest = new JButton("Next Best Thread");
         nextBest.addActionListener(e -> {
-            ThetaR bestFound = radonThreader.getNextBestThread();
+            ThetaR bestFound = radonThreader.getNextBestThetaR();
             showTheta = bestFound.theta;
             showR = bestFound.r;
             repaint();
@@ -95,7 +95,7 @@ public class LoomViewPanel extends JPanel implements RayIllustrator {
 
     public void makeStep() {
         radonThreader.addNextBestThread();
-        radonPanel.setImage(radonThreader.getCurrentRadonImage());
+        radonPanel.setRadonTransform(radonThreader.getRadonTransform());
         repaint();
     }
 
@@ -122,7 +122,6 @@ public class LoomViewPanel extends JPanel implements RayIllustrator {
     protected void paintComponent(Graphics g) {
         super.paintComponent(g);
         Dimension dim = toolbar.getPreferredSize();
-
 
         Graphics2D g2 = (Graphics2D) g.create();
         g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
@@ -174,7 +173,7 @@ public class LoomViewPanel extends JPanel implements RayIllustrator {
             var w2 = image.getWidth()/2;
             var h2 = image.getHeight()/2;
 
-            double r = showR - radonThreader.radius;
+            double r = showR - loom.radius;
             double s = Math.sin(theta);
             double c = Math.cos(theta);
             double d = Math.sqrt(w2*w2 - r*r);
@@ -189,6 +188,7 @@ public class LoomViewPanel extends JPanel implements RayIllustrator {
         g2.translate(0,-dim.height);
     }
 
+    @Override
     public void setRadon(RadonThreader radonThreader, RadonPanel radonPanel) {
         this.radonThreader = radonThreader;
         this.radonPanel = radonPanel;
