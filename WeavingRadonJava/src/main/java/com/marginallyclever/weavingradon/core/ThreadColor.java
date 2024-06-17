@@ -1,15 +1,15 @@
-package com.marginallyclever.weavingradon;
+package com.marginallyclever.weavingradon.core;
 
 import javax.vecmath.Vector2d;
 import java.awt.*;
 import java.awt.image.BufferedImage;
 
 public class ThreadColor {
-    final Vector2d start;  // xy
-    final Vector2d end;  // xy
-    final ThetaR thetaR;
-    final double length;
-    Color col;  // rgba
+    public final Vector2d start;  // xy
+    public final Vector2d end;  // xy
+    public final ThetaR thetaR;
+    public final double length;
+    public Color col;  // rgba
 
     public ThreadColor(Vector2d start, Vector2d end, ThetaR thetaR, Color col,double length) {
         this.start = start;

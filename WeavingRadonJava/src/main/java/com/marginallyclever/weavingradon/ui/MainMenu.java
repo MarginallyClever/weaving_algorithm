@@ -1,13 +1,14 @@
-package com.marginallyclever.weavingradon;
+package com.marginallyclever.weavingradon.ui;
 
 import ModernDocking.app.DockableMenuItem;
+import com.marginallyclever.weavingradon.WeavingApp;
 
 import javax.swing.*;
 
 public class MainMenu extends JMenuBar {
-    private final WeavingRadon parent;
+    private final WeavingApp parent;
 
-    public MainMenu(WeavingRadon parent) {
+    public MainMenu(WeavingApp parent) {
         super();
         this.parent = parent;
 

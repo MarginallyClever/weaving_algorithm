@@ -1,14 +1,16 @@
-package com.marginallyclever.weavingradon;
+package com.marginallyclever.weavingradon.ui;
+
+import com.marginallyclever.weavingradon.core.*;
 
 import javax.swing.*;
 import javax.vecmath.Vector2d;
 import java.awt.*;
+import java.awt.event.ActionListener;
 import java.awt.image.BufferedImage;
 
-public class LoomViewPanel extends JPanel implements RayIllustrator {
+public class LoomPanel extends JPanel implements RayIllustrator {
     private Loom loom;
     public static final int NAIL_RADIUS = 3;
-    public static final int TOOLBAR_HEIGHT = 30;
 
     private RadonThreader radonThreader;
     private RadonPanel radonPanel;
@@ -21,16 +23,16 @@ public class LoomViewPanel extends JPanel implements RayIllustrator {
     private int showTheta=-1;
     private int showR=-1;
 
-    JToggleButton togglePlay = new JToggleButton("Play");
+    private JToggleButton togglePlay = null;
 
-    public LoomViewPanel() {
+    public LoomPanel() {
         super(new BorderLayout());
         setName("Loom");
 
         // Create a Timer that fires every 100 milliseconds
-        Timer timer = new Timer(50, (e) -> {
+        Timer timer = new Timer(50, e -> {
             makeStep();
-            if(loom == null || loom.shouldStop()) {
+            if(loom == null || loom.shouldStop() && togglePlay!=null) {
                 togglePlay.setSelected(false);
             }
             invalidate();
@@ -39,29 +41,18 @@ public class LoomViewPanel extends JPanel implements RayIllustrator {
 
         toolbar.setFloatable(false);
 
-        JToggleButton toggleImage = new JToggleButton("Image");
-        toggleImage.setSelected(showImage);
-        toggleImage.addActionListener(e -> {
-            showImage=!showImage;
+        addToggle(toolbar,"Image", e->{
+            showImage = !showImage;
             setImage(image);
         });
-        toolbar.add(toggleImage);
-
-        JToggleButton toggleNails = new JToggleButton("Nails");
-        toggleNails.setSelected(showNails);
-        toggleNails.addActionListener(e -> {
-            showNails=!showNails;
+        addToggle(toolbar,"Nails", e->{
+            showNails = !showNails;
             repaint();
         });
-        toolbar.add(toggleNails);
-
-        JToggleButton toggleThread = new JToggleButton("Thread");
-        toggleThread.setSelected(showThread);
-        toggleThread.addActionListener(e -> {
-            showThread=!showThread;
+        addToggle(toolbar,"Thread", e->{
+            showThread = !showThread;
             repaint();
         });
-        toolbar.add(toggleThread);
 
         JButton nextBest = new JButton("Next Best Thread");
         nextBest.addActionListener(e -> {
@@ -76,8 +67,7 @@ public class LoomViewPanel extends JPanel implements RayIllustrator {
         step.addActionListener(e -> makeStep());
         toolbar.add(step);
 
-        togglePlay.setSelected(false);
-        togglePlay.addActionListener(e -> {
+        togglePlay = addToggle(toolbar,"Play", e->{
             togglePlay.setText(togglePlay.isSelected() ? "Stop" : "Play");
             if(togglePlay.isSelected()) {
                 // if play is becoming active, start a recurring timer that adds the next best thread.
@@ -87,10 +77,15 @@ public class LoomViewPanel extends JPanel implements RayIllustrator {
                 timer.stop();
             }
         });
-        toolbar.add(togglePlay);
-
 
         add(toolbar, BorderLayout.NORTH);
+    }
+
+    private JToggleButton addToggle(JToolBar toolbar, String label, ActionListener action) {
+        JToggleButton toggle = new JToggleButton(label);
+        toggle.addActionListener(action);
+        toolbar.add(toggle);
+        return toggle;
     }
 
     public void makeStep() {

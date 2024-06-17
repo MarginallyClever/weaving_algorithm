@@ -1,4 +1,4 @@
-package com.marginallyclever.weavingradon;
+package com.marginallyclever.weavingradon.core;
 
 import java.util.function.Consumer;
 

@@ -15,20 +15,24 @@ import ModernDocking.app.RootDockingPanel;
 import ModernDocking.ext.ui.DockingUI;
 import com.formdev.flatlaf.FlatLaf;
 import com.formdev.flatlaf.FlatLightLaf;
+import com.marginallyclever.weavingradon.core.GroupRadonThreader;
+import com.marginallyclever.weavingradon.core.Loom;
+import com.marginallyclever.weavingradon.core.SingleThreader;
+import com.marginallyclever.weavingradon.ui.*;
 
-public class WeavingRadon {
-    public static final int WIDTH = 800;
-    public static final int HEIGHT = 800;
+public class WeavingApp {
+    public static final int DIAMETER = 800;
     public static final int TITLEBAR_HEIGHT = 30;
     public static final int DOCKING_TAB_HEIGHT = 30;
-    public static final int ALPHA = 64;
+    public static final int ALPHA = 127;
+    public static final int TOOLBAR_HEIGHT = 30;
 
     private final JFrame frame;
     private final ArrayList<DockingPanel> windows = new ArrayList<>();
     private final JFileChooser fileChooser;
 
-    private Loom loom;
-    private final LoomViewPanel loomViewPanel;
+    private final Loom loom = new Loom(DIAMETER/2, 100);
+    private final LoomPanel loomPanel;
     private final RadonPanel radonPanel;
 
     //public final RadonThreader myThreader = new SingleThreader(Color.WHITE);
@@ -37,28 +41,29 @@ public class WeavingRadon {
     public final SingleThreader radonThreaderM = new SingleThreader(new Color(255,  0,255, ALPHA));
     public final SingleThreader radonThreaderY = new SingleThreader(new Color(255,255,  0, ALPHA));
     public final SingleThreader radonThreaderK = new SingleThreader(new Color(  0,  0,  0, ALPHA));
+    public final SingleThreader radonThreaderW = new SingleThreader(new Color(255,255,255, ALPHA));
 
     private final OneLineOnImage singleLine;
     private final RadonPanel singleRadon;
     public final SingleThreader radonThreaderB = new SingleThreader(new Color(255,255,255));
 
     public static void main(String[] args) {
-        SwingUtilities.invokeLater(WeavingRadon::new);
+        SwingUtilities.invokeLater(WeavingApp::new);
     }
 
-    public WeavingRadon() {
+    public WeavingApp() {
         setLookAndFeel();  // must come before creating the frames and panels.
 
         frame = new JFrame("Radon Weaving");
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        frame.setSize(WIDTH, HEIGHT + TITLEBAR_HEIGHT + DOCKING_TAB_HEIGHT + LoomViewPanel.TOOLBAR_HEIGHT);
+        frame.setSize(DIAMETER, DIAMETER + TITLEBAR_HEIGHT + DOCKING_TAB_HEIGHT + TOOLBAR_HEIGHT);
         //frame.setLocationByPlatform(true);
         frame.setLocationRelativeTo(null);
 
         // create panels
-        loomViewPanel = new LoomViewPanel();
-        radonPanel = new RadonPanel(loomViewPanel);
-        loomViewPanel.setRadon(myThreader, radonPanel);
+        loomPanel = new LoomPanel();
+        radonPanel = new RadonPanel(loomPanel);
+        loomPanel.setRadon(myThreader, radonPanel);
 
         singleLine = new OneLineOnImage();
         singleRadon = new RadonPanel(singleLine);
@@ -68,6 +73,7 @@ public class WeavingRadon {
         myThreader.addThreader(radonThreaderM);
         myThreader.addThreader(radonThreaderY);
         myThreader.addThreader(radonThreaderK);
+        myThreader.addThreader(radonThreaderW);
 
         // setup the docking system and dock the panels.
         initDocking();
@@ -119,7 +125,7 @@ public class WeavingRadon {
      */
     private void createDefaultLayout() {
         DockingPanel resultsView = new DockingPanel("8e50154c-a149-4e95-9db5-4611d24cc0cc", "View");
-        resultsView.add(loomViewPanel, BorderLayout.CENTER);
+        resultsView.add(loomPanel, BorderLayout.CENTER);
         windows.add(resultsView);
 
         DockingPanel radonView = new DockingPanel("f2308391-8388-4f90-89f0-61caca03eb18", "View R");
@@ -153,12 +159,12 @@ public class WeavingRadon {
             try {
                 BufferedImage square = makeSquare(ImageIO.read(new File(path)));
                 // build the nails and threads
-                loom = new Loom(square.getWidth()/2, 100);
+                loom.reset();
                 // build a radon transform for every thread, based on the color filter for that threader.
                 myThreader.setLoomAndImage(loom,square);
                 myThreader.maskCurrentRadonByAllThreads();
 
-                loomViewPanel.setLoomAndImage(loom,square);
+                loomPanel.setLoomAndImage(loom,square);
                 radonPanel.setRadonTransform(myThreader.getRadonTransform());
 
                 BufferedImage grey = makeGreyscale(square);
@@ -192,10 +198,9 @@ public class WeavingRadon {
      * @return a square image
      */
     private BufferedImage makeSquare(BufferedImage image) {
-        int d = Math.min(WIDTH,HEIGHT);
         int s = Math.min(image.getWidth(),image.getHeight());
-        BufferedImage square = new BufferedImage(d,d,BufferedImage.TYPE_INT_ARGB);
 
+        BufferedImage square = new BufferedImage(DIAMETER,DIAMETER,BufferedImage.TYPE_INT_ARGB);
         Graphics2D g2 = square.createGraphics();
         g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
         g2.setRenderingHint(RenderingHints.KEY_FRACTIONALMETRICS, RenderingHints.VALUE_FRACTIONALMETRICS_ON);
@@ -203,7 +208,7 @@ public class WeavingRadon {
         g2.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
         g2.setRenderingHint(RenderingHints.KEY_STROKE_CONTROL, RenderingHints.VALUE_STROKE_PURE);
 
-        g2.drawImage(image,0,0,d,d,0,0,s,s,null);
+        g2.drawImage(image,0,0,DIAMETER,DIAMETER,0,0,s,s,null);
         g2.dispose();
         return square;
     }

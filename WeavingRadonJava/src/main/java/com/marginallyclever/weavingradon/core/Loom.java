@@ -1,4 +1,6 @@
-package com.marginallyclever.weavingradon;
+package com.marginallyclever.weavingradon.core;
+
+import com.marginallyclever.weavingradon.WeavingApp;
 
 import javax.vecmath.Vector2d;
 import java.awt.*;
@@ -13,8 +15,8 @@ import java.util.List;
  * </ul>
  */
 public class Loom {
-    public final int numNails;
-    public final int radius;
+    public int numNails;
+    public int radius;
 
     public final List<Vector2d> nails = new ArrayList<>();
     public final List<ThreadColor> selectedThreads = new ArrayList<>();
@@ -23,10 +25,28 @@ public class Loom {
     public Loom(int radius,int numNails) {
         this.radius = radius;
         this.numNails = numNails;
+        reset();
+    }
 
-        // Draw initial image to buffer
+    public void reset() {
         createNails();
         createThreads();
+    }
+
+    /**
+     * Don't forget to call reset() after changing this value.
+     * @param radius the radius of the loom
+     */
+    public void setRadius(int radius) {
+        this.radius = radius;
+    }
+
+    /**
+     * Don't forget to call reset() after changing this value.
+     * @param numNails the number of nails on the loom
+     */
+    public void setNumNails(int numNails) {
+        this.numNails = numNails;
     }
 
     private void createNails() {
@@ -46,6 +66,8 @@ public class Loom {
      */
     private void createThreads() {
         System.out.println("createThreads");
+        selectedThreads.clear();
+        potentialThreads.clear();
 
         double maxR = 0;
         for (int i = 0; i < numNails; i++) {
@@ -71,7 +93,7 @@ public class Loom {
 
                 //System.out.println("theta="+theta+" r="+r);
                 maxR = Math.max(maxR, Math.abs(r));
-                ThreadColor thread = new ThreadColor(start, end, new ThetaR(theta, r), new Color(255, 255, 255,WeavingRadon.ALPHA),len);
+                ThreadColor thread = new ThreadColor(start, end, new ThetaR(theta, r), new Color(255, 255, 255, WeavingApp.ALPHA),len);
                 potentialThreads.add(thread);
             }
         }
@@ -105,5 +127,13 @@ public class Loom {
 
     public boolean shouldStop() {
         return potentialThreads.size() <= numNails*0.2;
+    }
+
+    public int getNumNails() {
+        return numNails;
+    }
+
+    public int getRadius() {
+        return radius;
     }
 }

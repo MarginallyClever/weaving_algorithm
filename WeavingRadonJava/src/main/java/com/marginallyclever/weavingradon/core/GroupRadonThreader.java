@@ -1,4 +1,4 @@
-package com.marginallyclever.weavingradon;
+package com.marginallyclever.weavingradon.core;
 
 import java.awt.*;
 import java.awt.image.BufferedImage;
@@ -12,7 +12,7 @@ public class GroupRadonThreader implements RadonThreader {
     private final List<SingleThreader> threaders = new ArrayList<>();
     private Loom loom;
 
-    void addThreader(SingleThreader threader) {
+    public void addThreader(SingleThreader threader) {
         threaders.add(threader);
     }
 

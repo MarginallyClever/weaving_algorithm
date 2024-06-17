@@ -1,4 +1,7 @@
-package com.marginallyclever.weavingradon;
+package com.marginallyclever.weavingradon.ui;
+
+import com.marginallyclever.weavingradon.core.RadonTransform;
+import com.marginallyclever.weavingradon.core.RayIllustrator;
 
 import javax.swing.*;
 import java.awt.*;

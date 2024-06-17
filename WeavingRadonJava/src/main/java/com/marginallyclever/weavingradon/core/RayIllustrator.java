@@ -1,4 +1,6 @@
-package com.marginallyclever.weavingradon;
+package com.marginallyclever.weavingradon.core;
+
+import com.marginallyclever.weavingradon.ui.RadonPanel;
 
 import java.awt.image.BufferedImage;
 

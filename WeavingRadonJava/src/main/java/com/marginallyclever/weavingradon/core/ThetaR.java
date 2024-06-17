@@ -1,4 +1,4 @@
-package com.marginallyclever.weavingradon;
+package com.marginallyclever.weavingradon.core;
 
 public class ThetaR {
     public int theta;

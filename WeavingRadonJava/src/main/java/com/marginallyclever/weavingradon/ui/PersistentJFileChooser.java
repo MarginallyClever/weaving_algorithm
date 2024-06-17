@@ -1,4 +1,4 @@
-package com.marginallyclever.weavingradon;
+package com.marginallyclever.weavingradon.ui;
 
 import javax.swing.*;
 import java.awt.*;
