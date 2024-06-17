@@ -6,7 +6,11 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * The collection of nails and threads.
+ * <p>Storage for the nails and thread on a loom.  The nails are split into two groups:</p>
+ * <ul>
+ *     <li>potential threads are all the threads that could be added to the loom.</li>
+ *     <li>selected threads are the threads that have been added to the loom.</li>
+ * </ul>
  */
 public class Loom {
     public final int numNails;

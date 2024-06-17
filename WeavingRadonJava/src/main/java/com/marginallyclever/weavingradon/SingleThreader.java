@@ -3,7 +3,9 @@ package com.marginallyclever.weavingradon;
 import java.awt.*;
 import java.awt.image.BufferedImage;
 
-
+/**
+ * A SingleThreader is a concrete implementation of a RadonThreader.  It can only handle one color.
+ */
 public class SingleThreader implements RadonThreader {
     private final Color threaderColor;
     public int radius;

@@ -1,11 +1,12 @@
 package com.marginallyclever.weavingradon;
 
+import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Facade for a group of RadonThreaders.
+ * A GroupRadonThreader is a RadonThreader that can handle multiple colors.
  */
 public class GroupRadonThreader implements RadonThreader {
     private final List<SingleThreader> threaders = new ArrayList<>();
@@ -17,12 +18,16 @@ public class GroupRadonThreader implements RadonThreader {
 
     @Override
     public RadonTransform getRadonTransform() {
-        return threaders.get(0).getRadonTransform();
+        return threaders.getFirst().getRadonTransform();
     }
 
     @Override
     public void subtractThreadFromRadon(ThreadColor thread) {
-        threaders.forEach(t->t.subtractThreadFromRadon(thread));
+        ThreadColor thread2 = new ThreadColor(thread);
+        thread2.col = new Color(255, 255, 255);
+        BufferedImage oneThreadOnCanvas = getRadonTransform().drawOneThread(thread2);
+        RadonTransform oneThreadRadonTransform = new RadonTransform(oneThreadOnCanvas);
+        threaders.forEach(t->t.getRadonTransform().subtract(oneThreadRadonTransform));
     }
 
     @Override
@@ -45,7 +50,7 @@ public class GroupRadonThreader implements RadonThreader {
         // find the best thetaR
         for(SingleThreader threader : threaders) {
             ThetaR t = threader.getNextBestThetaR();
-            System.out.print(t+","+t.intensity+" ");
+            System.out.print(t.intensity+"\t");
             if(intensity < t.intensity) {
                 intensity = t.intensity;
                 best = t;

@@ -33,9 +33,10 @@ public class WeavingRadon {
 
     //public final RadonThreader myThreader = new SingleThreader(Color.WHITE);
     public final GroupRadonThreader myThreader = new GroupRadonThreader();
-    public final SingleThreader radonThreaderRed   = new SingleThreader(new Color(255,0,0, ALPHA));
-    public final SingleThreader radonThreaderGreen = new SingleThreader(new Color(0,255,0, ALPHA));
-    public final SingleThreader radonThreaderBlue  = new SingleThreader(new Color(0,0,255, ALPHA));
+    public final SingleThreader radonThreaderC = new SingleThreader(new Color(  0,255,255, ALPHA));
+    public final SingleThreader radonThreaderM = new SingleThreader(new Color(255,  0,255, ALPHA));
+    public final SingleThreader radonThreaderY = new SingleThreader(new Color(255,255,  0, ALPHA));
+    public final SingleThreader radonThreaderK = new SingleThreader(new Color(  0,  0,  0, ALPHA));
 
     private final OneLineOnImage singleLine;
     private final RadonPanel singleRadon;
@@ -63,9 +64,10 @@ public class WeavingRadon {
         singleRadon = new RadonPanel(singleLine);
         singleLine.setRadon(radonThreaderB,singleRadon);
 
-        myThreader.addThreader(radonThreaderRed);
-        myThreader.addThreader(radonThreaderGreen);
-        myThreader.addThreader(radonThreaderBlue);
+        myThreader.addThreader(radonThreaderC);
+        myThreader.addThreader(radonThreaderM);
+        myThreader.addThreader(radonThreaderY);
+        myThreader.addThreader(radonThreaderK);
 
         // setup the docking system and dock the panels.
         initDocking();

@@ -136,7 +136,7 @@ public class LoomViewPanel extends JPanel implements RayIllustrator {
             // Draw the image at (0, 0) with the size of the panel
             g2.drawImage(image, 0, 0, image.getWidth(), image.getHeight(), this);
         } else {
-            g2.setColor(Color.BLACK);
+            g2.setColor(Color.WHITE);
             g2.fillRect(0, 0, getWidth(), getHeight());
         }
 

@@ -1,10 +1,14 @@
 package com.marginallyclever.weavingradon;
 
-import javax.swing.*;
 import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.util.stream.IntStream;
 
+/**
+ * A RadonTransform is a representation of an image in Radon space.  It is a 2D array of intensities.
+ * The X axis represents theta, the angle of the line about the center of the image.
+ * The Y axis represents the distance from the center of the image.
+ */
 public class RadonTransform {
     private static final double[] cosTheta = new double[180];
     private static final double[] sinTheta = new double[180];
@@ -19,14 +23,19 @@ public class RadonTransform {
     }
 
     private final BufferedImage graph;
+    private final int radius;
 
 
-    public RadonTransform(BufferedImage pg) {
-        if(pg==null) throw new IllegalArgumentException("image cannot be null");
-        if(pg.getWidth()!=pg.getHeight()) throw new IllegalArgumentException("image must be square, is "+pg.getWidth()+"x"+pg.getHeight());
-        int diameter = pg.getWidth();
-        int radius = diameter / 2;
+    public RadonTransform(BufferedImage source) {
+        if(source==null) {
+            throw new IllegalArgumentException("image cannot be null");
+        }
+        if(source.getWidth()!=source.getHeight()) {
+            throw new IllegalArgumentException("image must be square, is "+source.getWidth()+"x"+source.getHeight());
+        }
 
+        int diameter = source.getWidth();
+        radius = diameter / 2;
         graph = new BufferedImage(180, diameter, BufferedImage.TYPE_INT_ARGB);
 
         IntStream.range(0, 180).parallel().forEach(theta -> {
@@ -50,11 +59,11 @@ public class RadonTransform {
                 double y1 = radius + r * s - d * c;
 
                 // Use Bresenham's algorithm to sample points along the line
-                BresenhamProducer.bresenham((int)x0, (int)y0, (int)x1, (int)y1, point -> {
+                LineProducer.bresenham((int)x0, (int)y0, (int)x1, (int)y1, point -> {
                     int x = point[0];
                     int y = point[1];
                     if (x >= 0 && x < diameter && y >= 0 && y < diameter) {
-                        var v = new Color(pg.getRGB(x,y));
+                        var v = new Color(source.getRGB(x,y));
                         sum[0] += v.getRed();
                         count[0]++;
                     }
@@ -97,20 +106,23 @@ public class RadonTransform {
     }
 
     public void subtractThread(ThreadColor thread) {
-        if(thread==null) throw new IllegalArgumentException("thread cannot be null");
+        if (thread == null) throw new IllegalArgumentException("thread cannot be null");
 
         ThreadColor thread2 = new ThreadColor(thread);
-        thread2.col = new Color(255,255,255);
+        thread2.col = new Color(255, 255, 255);
         BufferedImage oneThreadOnCanvas = drawOneThread(thread2);
         RadonTransform oneThreadRadonTransform = new RadonTransform(oneThreadOnCanvas);
+        subtract(oneThreadRadonTransform);
+    }
 
-        // subtract the new radon transform from the current radon transform
+    // subtract arg0 from the current radon transform
+    public void subtract(RadonTransform arg0) {
         for(int x = 0; x < graph.getWidth(); x++) {
             for(int y = 0; y < graph.getHeight(); y++) {
                 int currentIntensity = getIntensity(x,y);
                 if(currentIntensity==0) continue;
 
-                int threadIntensity = oneThreadRadonTransform.getIntensity(x,y);
+                int threadIntensity = arg0.getIntensity(x,y);
                 if(threadIntensity==0) continue;
 
                 int v = Math.max(currentIntensity - threadIntensity, 0);
@@ -121,7 +133,7 @@ public class RadonTransform {
     }
 
     // draw one thread to a black canvas diameter * diameter in size.
-    private BufferedImage drawOneThread(ThreadColor thread) {
+    public BufferedImage drawOneThread(ThreadColor thread) {
         BufferedImage oneThreadOnCanvas = new BufferedImage(graph.getHeight(), graph.getHeight(), BufferedImage.TYPE_INT_ARGB);
 
         Graphics2D g2 = oneThreadOnCanvas.createGraphics();
