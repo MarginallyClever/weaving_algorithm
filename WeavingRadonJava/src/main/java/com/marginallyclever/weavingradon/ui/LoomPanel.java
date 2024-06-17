@@ -152,7 +152,7 @@ public class LoomPanel extends JPanel implements RayIllustrator {
         }
 
         if(showThread && loom !=null) {
-            for(ThreadColor tc : loom.selectedThreads) {
+            for(LoomThread tc : loom.selectedThreads) {
                 g2.setColor(tc.col);
                 g2.drawLine((int)tc.start.x,
                             (int)tc.start.y,

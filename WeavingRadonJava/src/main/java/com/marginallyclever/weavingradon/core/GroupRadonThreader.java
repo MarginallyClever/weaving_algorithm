@@ -22,8 +22,8 @@ public class GroupRadonThreader implements RadonThreader {
     }
 
     @Override
-    public void subtractThreadFromRadon(ThreadColor thread) {
-        ThreadColor thread2 = new ThreadColor(thread);
+    public void subtractThreadFromRadon(LoomThread thread) {
+        LoomThread thread2 = new LoomThread(thread);
         thread2.col = new Color(255, 255, 255);
         BufferedImage oneThreadOnCanvas = getRadonTransform().drawOneThread(thread2);
         RadonTransform oneThreadRadonTransform = new RadonTransform(oneThreadOnCanvas);
@@ -33,7 +33,7 @@ public class GroupRadonThreader implements RadonThreader {
     @Override
     public void addNextBestThread() {
         if (loom.potentialThreads.isEmpty()) return;
-        ThreadColor bestThread = getNextBestThread();
+        LoomThread bestThread = getNextBestThread();
         loom.addNextBestThread(bestThread);
         subtractThreadFromRadon(bestThread);
     }
@@ -42,7 +42,7 @@ public class GroupRadonThreader implements RadonThreader {
      * Search every radon transform for the next best thread.
      * @return
      */
-    public ThreadColor getNextBestThread() {
+    public LoomThread getNextBestThread() {
         double intensity = 0;
         ThetaR best = null;
         SingleThreader bestThreader = null;
@@ -62,7 +62,7 @@ public class GroupRadonThreader implements RadonThreader {
 
         System.out.println();
 
-        ThreadColor thread = loom.findThreadClosestToThetaR(best);
+        LoomThread thread = loom.findThreadClosestToThetaR(best);
         thread.col = bestThreader.getColor();
         return thread;
     }
@@ -85,8 +85,25 @@ public class GroupRadonThreader implements RadonThreader {
     }
 
     @Override
-    public void maskCurrentRadonByAllThreads() {
-        threaders.forEach(SingleThreader::maskCurrentRadonByAllThreads);
+    public void maskCurrentRadonByAllThreads() {/*
+        System.out.println("filterRadonByThreads");
+        int radius = loom.getRadius();
+        var filter = new BufferedImage(radius*2, radius*2, BufferedImage.TYPE_INT_ARGB);
+        int white = Color.WHITE.getRGB();
+
+        for(ThreadColor thread : loom.potentialThreads) {
+            filter.setRGB(thread.thetaR.theta, thread.thetaR.getY(radius), white);
+        }
+        for(ThreadColor thread : loom.selectedThreads) {
+            filter.setRGB(thread.thetaR.theta, thread.thetaR.getY(radius), white);
+        }
+
+        for(SingleThreader s : threaders) {
+            s.getRadonTransform().maskWith(filter,white);
+        }*/
+        for(SingleThreader s : threaders) {
+            s.maskCurrentRadonByAllThreads();
+        }
     }
 
     @Override

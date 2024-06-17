@@ -14,7 +14,7 @@ public interface RadonThreader {
 
     RadonTransform getRadonTransform();
 
-    void subtractThreadFromRadon(ThreadColor thread);
+    void subtractThreadFromRadon(LoomThread thread);
 
     void setLoomAndImage(Loom loom, BufferedImage grey);
 }

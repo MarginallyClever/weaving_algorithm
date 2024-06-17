@@ -8,7 +8,7 @@ import java.awt.image.BufferedImage;
 import java.util.concurrent.locks.ReentrantLock;
 
 /**
- * Displays a single {@link ThreadColor} on a {@link BufferedImage}.  Used for debugging the {@link SingleThreader}.
+ * Displays a single {@link LoomThread} on a {@link BufferedImage}.  Used for debugging the {@link SingleThreader}.
  */
 public class OneLineOnImage extends JPanel implements RayIllustrator {
     private BufferedImage image;
@@ -45,10 +45,10 @@ public class OneLineOnImage extends JPanel implements RayIllustrator {
         g.setColor(Color.BLACK);
         g.fillRect(0,0,image.getWidth(),image.getHeight());
 
-        for(ThreadColor t : loom.selectedThreads) {
+        for(LoomThread t : loom.selectedThreads) {
             t.display(image);
         }
-        for(ThreadColor t : loom.potentialThreads) {
+        for(LoomThread t : loom.potentialThreads) {
             t.display(image);
         }
         singleRadon.setRadonTransform(new RadonTransform(image));

@@ -19,8 +19,8 @@ public class Loom {
     public int radius;
 
     public final List<Vector2d> nails = new ArrayList<>();
-    public final List<ThreadColor> selectedThreads = new ArrayList<>();
-    public final List<ThreadColor> potentialThreads = new ArrayList<>();
+    public final List<LoomThread> selectedThreads = new ArrayList<>();
+    public final List<LoomThread> potentialThreads = new ArrayList<>();
 
     public Loom(int radius,int numNails) {
         this.radius = radius;
@@ -93,23 +93,23 @@ public class Loom {
 
                 //System.out.println("theta="+theta+" r="+r);
                 maxR = Math.max(maxR, Math.abs(r));
-                ThreadColor thread = new ThreadColor(start, end, new ThetaR(theta, r), new Color(255, 255, 255, WeavingApp.ALPHA),len);
+                LoomThread thread = new LoomThread(start, end, new ThetaR(theta, r), new Color(255, 255, 255, WeavingApp.ALPHA),len);
                 potentialThreads.add(thread);
             }
         }
     }
 
-    public void addNextBestThread(ThreadColor bestThread) {
+    public void addNextBestThread(LoomThread bestThread) {
         if (bestThread == null) return;
         potentialThreads.remove(bestThread);
         selectedThreads.add(bestThread);
     }
 
-    public ThreadColor findThreadClosestToThetaR(ThetaR target) {
-        ThreadColor nearestThread = null;
+    public LoomThread findThreadClosestToThetaR(ThetaR target) {
+        LoomThread nearestThread = null;
         double minDistance = Double.MAX_VALUE;
 
-        for (ThreadColor thread : potentialThreads) {
+        for (LoomThread thread : potentialThreads) {
             double x = thread.thetaR.theta - target.theta;
             double y = thread.thetaR.r - target.r;
             double distanceSquared = ( x*x + y*y );

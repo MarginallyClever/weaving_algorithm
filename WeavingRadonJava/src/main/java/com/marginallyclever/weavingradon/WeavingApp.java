@@ -124,11 +124,11 @@ public class WeavingApp {
      * or <a href="https://www.uuidgenerator.net/">one of many websites</a>.
      */
     private void createDefaultLayout() {
-        DockingPanel resultsView = new DockingPanel("8e50154c-a149-4e95-9db5-4611d24cc0cc", "View");
+        DockingPanel resultsView = new DockingPanel("8e50154c-a149-4e95-9db5-4611d24cc0cc", "Loom");
         resultsView.add(loomPanel, BorderLayout.CENTER);
         windows.add(resultsView);
 
-        DockingPanel radonView = new DockingPanel("f2308391-8388-4f90-89f0-61caca03eb18", "View R");
+        DockingPanel radonView = new DockingPanel("f2308391-8388-4f90-89f0-61caca03eb18", "Radon");
         radonView.add(radonPanel, BorderLayout.CENTER);
         windows.add(radonView);
 

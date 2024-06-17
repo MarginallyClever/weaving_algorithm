@@ -4,14 +4,17 @@ import javax.vecmath.Vector2d;
 import java.awt.*;
 import java.awt.image.BufferedImage;
 
-public class ThreadColor {
+/**
+ * Thread on a Loom.
+ */
+public class LoomThread {
     public final Vector2d start;  // xy
     public final Vector2d end;  // xy
     public final ThetaR thetaR;
     public final double length;
     public Color col;  // rgba
 
-    public ThreadColor(Vector2d start, Vector2d end, ThetaR thetaR, Color col,double length) {
+    public LoomThread(Vector2d start, Vector2d end, ThetaR thetaR, Color col, double length) {
         this.start = start;
         this.end = end;
         this.thetaR = thetaR;
@@ -19,7 +22,7 @@ public class ThreadColor {
         this.length = length;
     }
 
-    public ThreadColor(ThreadColor b) {
+    public LoomThread(LoomThread b) {
         this.start = new Vector2d(b.start);
         this.end = new Vector2d(b.end);
         this.thetaR = new ThetaR(b.thetaR.theta,b.thetaR.r);

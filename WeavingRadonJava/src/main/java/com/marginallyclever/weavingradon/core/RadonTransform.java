@@ -105,10 +105,10 @@ public class RadonTransform {
         return new Color(graph.getRGB(theta, y)).getRed();
     }
 
-    public void subtractThread(ThreadColor thread) {
+    public void subtractThread(LoomThread thread) {
         if (thread == null) throw new IllegalArgumentException("thread cannot be null");
 
-        ThreadColor thread2 = new ThreadColor(thread);
+        LoomThread thread2 = new LoomThread(thread);
         thread2.col = new Color(255, 255, 255);
         BufferedImage oneThreadOnCanvas = drawOneThread(thread2);
         RadonTransform oneThreadRadonTransform = new RadonTransform(oneThreadOnCanvas);
@@ -133,7 +133,7 @@ public class RadonTransform {
     }
 
     // draw one thread to a black canvas diameter * diameter in size.
-    public BufferedImage drawOneThread(ThreadColor thread) {
+    public BufferedImage drawOneThread(LoomThread thread) {
         BufferedImage oneThreadOnCanvas = new BufferedImage(graph.getHeight(), graph.getHeight(), BufferedImage.TYPE_INT_ARGB);
 
         Graphics2D g2 = oneThreadOnCanvas.createGraphics();
@@ -154,5 +154,16 @@ public class RadonTransform {
 
     public Image getGraph() {
         return graph;
+    }
+
+    public void maskWith(BufferedImage filter,int maskColor) {
+        // mask currentRadonImage with filter.
+        for(int y = 0; y < graph.getHeight(); y++) {
+            for(int x = 0; x < graph.getWidth(); x++) {
+                if(filter.getRGB(x,y) != maskColor) {
+                    graph.setRGB(x, y, 0);
+                }
+            }
+        }
     }
 }

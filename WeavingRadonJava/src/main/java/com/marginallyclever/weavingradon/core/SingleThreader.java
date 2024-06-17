@@ -26,40 +26,24 @@ public class SingleThreader implements RadonThreader {
 
         BufferedImage filtered = makeFilteredImage(referenceImage, getColor());
         radonTransform = new RadonTransform(filtered);
-        System.out.println("done");
     }
 
     /**
      * Mask the current radon image with the remaining threads.
      */
     public void maskCurrentRadonByAllThreads() {
-        System.out.println("filterRadonByThreads");
+        System.out.println("filterRadonByThreads "+this.getColor());
         var filter = new BufferedImage(radonTransform.getWidth(), radonTransform.getHeight(), BufferedImage.TYPE_INT_ARGB);
         int white = Color.WHITE.getRGB();
 
-        for(ThreadColor thread : loom.potentialThreads) {
-            try {
-                filter.setRGB(thread.thetaR.theta, thread.thetaR.getY(radius), white);
-            } catch (Exception e) {
-                System.out.println("OOB "+thread.thetaR);
-            }
+        for(LoomThread thread : loom.potentialThreads) {
+            filter.setRGB(thread.thetaR.theta, thread.thetaR.getY(radius), white);
         }
-        for(ThreadColor thread : loom.selectedThreads) {
-            try {
-                filter.setRGB(thread.thetaR.theta, thread.thetaR.getY(radius), white);
-            } catch (Exception e) {
-                System.out.println("OOB "+thread.thetaR);
-            }
+        for(LoomThread thread : loom.selectedThreads) {
+            filter.setRGB(thread.thetaR.theta, thread.thetaR.getY(radius), white);
         }
 
-        // mask currentRadonImage with filter.
-        for(int y = 0; y < radonTransform.getHeight(); y++) {
-            for(int x = 0; x < radonTransform.getWidth(); x++) {
-                if(filter.getRGB(x,y) != white) {
-                    radonTransform.setIntensity(x,y,0);
-                }
-            }
-        }
+        radonTransform.maskWith(filter,white);
     }
 
     /**
@@ -68,7 +52,7 @@ public class SingleThreader implements RadonThreader {
     @Override
     public void addNextBestThread() {
         if (loom.potentialThreads.isEmpty()) return;
-        ThreadColor bestThread = loom.findThreadClosestToThetaR(getNextBestThetaR());
+        LoomThread bestThread = loom.findThreadClosestToThetaR(getNextBestThetaR());
         loom.addNextBestThread(bestThread);
         subtractThreadFromRadon(bestThread);
     }
@@ -105,7 +89,7 @@ public class SingleThreader implements RadonThreader {
     }
 
     @Override
-    public void subtractThreadFromRadon(ThreadColor thread) {
+    public void subtractThreadFromRadon(LoomThread thread) {
         radonTransform.subtractThread(thread);
     }
 
