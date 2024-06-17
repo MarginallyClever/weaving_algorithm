@@ -4,15 +4,15 @@ import java.awt.*;
 import java.awt.image.BufferedImage;
 
 /**
- * A SingleThreader is a concrete implementation of a RadonThreader.  It can only handle one color.
+ * A MonochromaticThreader is a concrete implementation of a RadonThreader.  It can only handle one color.
  */
-public class SingleThreader implements RadonThreader {
+public class MonochromaticThreader implements RadonThreader {
     private final Color threaderColor;
     public int radius;
     private RadonTransform radonTransform;
     private Loom loom;
 
-    public SingleThreader(Color threaderColor) {
+    public MonochromaticThreader(Color threaderColor) {
         super();
         this.threaderColor = threaderColor;
     }
@@ -63,29 +63,17 @@ public class SingleThreader implements RadonThreader {
      * bestR is in the range -radius...radius.
      */
     public ThetaR getNextBestThetaR() {
-        int maxIntensity = 0;
-
-        ThetaR bestFound = new ThetaR(0,0);
-        ThetaR current = new ThetaR(0,0);
+        ThetaR bestFound = new ThetaR(0,0,0);
         // Find the pixel with the maximum intensity in the current radon transform
-        for(current.r=-radius;current.r<radius;++current.r) {
-            for(current.theta = 0; current.theta<180; ++current.theta) {
-                int intensity = radonTransform.getIntensity(current.theta, current.getY(radius));
-                if (intensity > maxIntensity) {
-                    maxIntensity = intensity;
-                    bestFound.set(current);
+        for(int r=-radius;r<radius;++r) {
+            for(int theta = 0; theta<180; ++theta) {
+                int intensity = radonTransform.getIntensity(theta, r+radius);
+                if (intensity > bestFound.intensity) {
+                    bestFound.set(theta,r,intensity);
                 }
             }
         }
-
-        bestFound.intensity = maxIntensity;
-        //System.out.println("found "+maxIntensity +"\t"+ bestFound);
         return bestFound;
-    }
-
-    void markPoint(ThetaR best) {
-        //System.out.println("Mark "+best.theta+","+best.r);
-        radonTransform.setIntensity(best.theta, best.getY(radius), 0);
     }
 
     @Override
@@ -95,10 +83,6 @@ public class SingleThreader implements RadonThreader {
 
     public RadonTransform getRadonTransform() {
         return radonTransform;
-    }
-
-    public boolean shouldStop() {
-        return loom.shouldStop();
     }
 
     public void setLoomAndImage(Loom loom, BufferedImage image) {

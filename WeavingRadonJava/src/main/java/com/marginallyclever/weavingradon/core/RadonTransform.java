@@ -41,43 +41,40 @@ public class RadonTransform {
         IntStream.range(0, 180).parallel().forEach(theta -> {
             double c = cosTheta[theta];
             double s = sinTheta[theta];
-            final int [] sum = new int[1];
-            final int [] count = new int[1];
-            final int [] total = new int[1];
+            // three color channels + count of samples
+            final int [] sum = new int[3+1];
 
             for (int r = -radius; r < radius; r++) {
                 sum[0] = 0;
-                count[0] = 0;
-                total[0] = 0;
+                sum[1] = 0;
+                sum[2] = 0;
+                sum[3] = 0;
 
                 // Compute the start and end points for the line at this angle and distance
                 // Calculate intersections with the circle
                 double d = Math.sqrt(radius*radius - r*r);
-                double x0 = radius + r * c - d * s;
-                double y0 = radius + r * s + d * c;
-                double x1 = radius + r * c + d * s;
-                double y1 = radius + r * s - d * c;
+                double x0 = Math.max(0,Math.min(diameter-1, radius + r * c - d * s));
+                double y0 = Math.max(0,Math.min(diameter-1, radius + r * s + d * c));
+                double x1 = Math.max(0,Math.min(diameter-1, radius + r * c + d * s));
+                double y1 = Math.max(0,Math.min(diameter-1, radius + r * s - d * c));
 
                 // Use Bresenham's algorithm to sample points along the line
                 LineProducer.bresenham((int)x0, (int)y0, (int)x1, (int)y1, point -> {
                     int x = point[0];
                     int y = point[1];
-                    if (x >= 0 && x < diameter && y >= 0 && y < diameter) {
-                        var v = new Color(source.getRGB(x,y));
-                        sum[0] += v.getRed();
-                        count[0]++;
-                    }
-                    total[0]++;
+                    var v = new Color(source.getRGB(x,y));
+                    sum[0] += v.getRed();
+                    sum[1] += v.getGreen();
+                    sum[2] += v.getBlue();
+                    sum[3]++;
                 });
 
-                int ri = r + radius;
-                if (ri >= 0 && ri < diameter && count[0]>0) {
-                    int r2 = (int)( (double)sum[0] / count[0] );
-                    //int g2 = (int)( (double)sum[1] / (double)count[0] );
-                    //int b2 = (int)( (double)sum[2] / (double)count[0] );
-                    //int v = (int)Math.min(255, Math.max(0, (r2 + g2 + b2) / 3.0));
-                    int v = Math.max(0, Math.min(255, r2));
-                    graph.setRGB(theta, ri, (new Color(v,v,v).getRGB()));
+                if(sum[3]>0) {
+                    int r2 = (int)( (double)sum[0] / (double)sum[3] );
+                    int g2 = (int)( (double)sum[1] / (double)sum[3] );
+                    int b2 = (int)( (double)sum[2] / (double)sum[3] );
+                    int v = (int)Math.min(255, Math.max(0, (r2 + g2 + b2) / 3.0));
+                    setIntensity(theta, r + radius, v);
                 }
             }
         });
@@ -92,15 +89,19 @@ public class RadonTransform {
     }
 
     /**
-     *
-     * @param x
-     * @param y
+     * @param theta 0...180
+     * @param y 0...diameter
      * @param i 0...255
      */
-    public void setIntensity(int x, int y, int i) {
-        graph.setRGB(x, y, new Color(i,i,i).getRGB());
+    public void setIntensity(int theta, int y, int i) {
+        graph.setRGB(theta, y, new Color(i,i,i).getRGB());
     }
 
+    /**
+     * @param theta 0...180
+     * @param y 0...diameter
+     * @return 0...255
+     */
     public int getIntensity(int theta, int y) {
         return new Color(graph.getRGB(theta, y)).getRed();
     }
@@ -137,11 +138,7 @@ public class RadonTransform {
         BufferedImage oneThreadOnCanvas = new BufferedImage(graph.getHeight(), graph.getHeight(), BufferedImage.TYPE_INT_ARGB);
 
         Graphics2D g2 = oneThreadOnCanvas.createGraphics();
-        g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-        g2.setRenderingHint(RenderingHints.KEY_FRACTIONALMETRICS, RenderingHints.VALUE_FRACTIONALMETRICS_ON);
-        g2.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
-        g2.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
-        g2.setRenderingHint(RenderingHints.KEY_STROKE_CONTROL, RenderingHints.VALUE_STROKE_PURE);
+        RenderHintHelper.setRenderHints(g2);
 
         g2.setColor(new Color(0,0,0,0));
         g2.clearRect(0,0, oneThreadOnCanvas.getWidth(), oneThreadOnCanvas.getHeight());
@@ -161,7 +158,7 @@ public class RadonTransform {
         for(int y = 0; y < graph.getHeight(); y++) {
             for(int x = 0; x < graph.getWidth(); x++) {
                 if(filter.getRGB(x,y) != maskColor) {
-                    graph.setRGB(x, y, 0);
+                    setIntensity(x, y, 0);
                 }
             }
         }

@@ -8,7 +8,7 @@ import java.awt.image.BufferedImage;
 import java.util.concurrent.locks.ReentrantLock;
 
 /**
- * Displays a single {@link LoomThread} on a {@link BufferedImage}.  Used for debugging the {@link SingleThreader}.
+ * Displays a single {@link LoomThread} on a {@link BufferedImage}.  Used for debugging the {@link MonochromaticThreader}.
  */
 public class OneLineOnImage extends JPanel implements RayIllustrator {
     private BufferedImage image;
@@ -95,11 +95,7 @@ public class OneLineOnImage extends JPanel implements RayIllustrator {
         if(image == null) return;
 
         Graphics2D g2 = image.createGraphics();
-        g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-        g2.setRenderingHint(RenderingHints.KEY_FRACTIONALMETRICS, RenderingHints.VALUE_FRACTIONALMETRICS_ON);
-        g2.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
-        g2.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
-        g2.setRenderingHint(RenderingHints.KEY_STROKE_CONTROL, RenderingHints.VALUE_STROKE_PURE);
+        RenderHintHelper.setRenderHints(g2);
 
         g2.setColor(Color.BLACK);
         g2.fillRect(0,0,image.getWidth(),image.getHeight());

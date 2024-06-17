@@ -93,7 +93,7 @@ public class Loom {
 
                 //System.out.println("theta="+theta+" r="+r);
                 maxR = Math.max(maxR, Math.abs(r));
-                LoomThread thread = new LoomThread(start, end, new ThetaR(theta, r), new Color(255, 255, 255, WeavingApp.ALPHA),len);
+                LoomThread thread = new LoomThread(start, end, new ThetaR(theta, r,0), new Color(255, 255, 255, WeavingApp.ALPHA),len);
                 potentialThreads.add(thread);
             }
         }

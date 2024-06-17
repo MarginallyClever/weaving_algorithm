@@ -15,9 +15,10 @@ import ModernDocking.app.RootDockingPanel;
 import ModernDocking.ext.ui.DockingUI;
 import com.formdev.flatlaf.FlatLaf;
 import com.formdev.flatlaf.FlatLightLaf;
-import com.marginallyclever.weavingradon.core.GroupRadonThreader;
+import com.marginallyclever.weavingradon.core.MulticolorThreader;
 import com.marginallyclever.weavingradon.core.Loom;
-import com.marginallyclever.weavingradon.core.SingleThreader;
+import com.marginallyclever.weavingradon.core.RenderHintHelper;
+import com.marginallyclever.weavingradon.core.MonochromaticThreader;
 import com.marginallyclever.weavingradon.ui.*;
 
 public class WeavingApp {
@@ -36,16 +37,16 @@ public class WeavingApp {
     private final RadonPanel radonPanel;
 
     //public final RadonThreader myThreader = new SingleThreader(Color.WHITE);
-    public final GroupRadonThreader myThreader = new GroupRadonThreader();
-    public final SingleThreader radonThreaderC = new SingleThreader(new Color(  0,255,255, ALPHA));
-    public final SingleThreader radonThreaderM = new SingleThreader(new Color(255,  0,255, ALPHA));
-    public final SingleThreader radonThreaderY = new SingleThreader(new Color(255,255,  0, ALPHA));
-    public final SingleThreader radonThreaderK = new SingleThreader(new Color(  0,  0,  0, ALPHA));
-    public final SingleThreader radonThreaderW = new SingleThreader(new Color(255,255,255, ALPHA));
+    public final MulticolorThreader myThreader = new MulticolorThreader();
+    public final MonochromaticThreader radonThreaderC = new MonochromaticThreader(new Color(  0,255,255, ALPHA));
+    public final MonochromaticThreader radonThreaderM = new MonochromaticThreader(new Color(255,  0,255, ALPHA));
+    public final MonochromaticThreader radonThreaderY = new MonochromaticThreader(new Color(255,255,  0, ALPHA));
+    public final MonochromaticThreader radonThreaderK = new MonochromaticThreader(new Color(  0,  0,  0, ALPHA));
+    public final MonochromaticThreader radonThreaderW = new MonochromaticThreader(new Color(255,255,255, ALPHA));
 
     private final OneLineOnImage singleLine;
     private final RadonPanel singleRadon;
-    public final SingleThreader radonThreaderB = new SingleThreader(new Color(255,255,255));
+    public final MonochromaticThreader radonThreaderB = new MonochromaticThreader(new Color(255,255,255));
 
     public static void main(String[] args) {
         SwingUtilities.invokeLater(WeavingApp::new);
@@ -202,11 +203,7 @@ public class WeavingApp {
 
         BufferedImage square = new BufferedImage(DIAMETER,DIAMETER,BufferedImage.TYPE_INT_ARGB);
         Graphics2D g2 = square.createGraphics();
-        g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-        g2.setRenderingHint(RenderingHints.KEY_FRACTIONALMETRICS, RenderingHints.VALUE_FRACTIONALMETRICS_ON);
-        g2.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
-        g2.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
-        g2.setRenderingHint(RenderingHints.KEY_STROKE_CONTROL, RenderingHints.VALUE_STROKE_PURE);
+        RenderHintHelper.setRenderHints(g2);
 
         g2.drawImage(image,0,0,DIAMETER,DIAMETER,0,0,s,s,null);
         g2.dispose();
