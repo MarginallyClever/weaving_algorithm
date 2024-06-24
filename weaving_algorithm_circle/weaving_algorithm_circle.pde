@@ -214,13 +214,13 @@ void addDistanceWeight() {
 void setupThreadsToUse() {
   //if(tree.heap.size()==0) 
   {
-    threads.add(startNewWeavingThread(white,"white"));
+    //threads.add(startNewWeavingThread(white,"white"));
     threads.add(startNewWeavingThread(black,"black"));
-    threads.add(startNewWeavingThread(cyan,"cyan"));
+    //threads.add(startNewWeavingThread(cyan,"cyan"));
     //threads.add(startNewWeavingThread(magenta,"magenta"));
-    threads.add(startNewWeavingThread(yellow,"yellow"));
-    threads.add(startNewWeavingThread(red,"red"));
-    threads.add(startNewWeavingThread(brown,"brown"));
+    //threads.add(startNewWeavingThread(yellow,"yellow"));
+    //threads.add(startNewWeavingThread(red,"red"));
+    //threads.add(startNewWeavingThread(brown,"brown"));
   }/* else {
     while(tree.heap.size()>0) {
       OctreeNode n = tree.heap.remove(0);
