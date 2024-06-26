@@ -140,9 +140,11 @@ public class RadonTransform {
             }
             return 0;
         }
-        Vector2d intersection = findIntersection(thread, theta, r);
 
+        // is there an intersection?
+        Vector2d intersection = findIntersection(thread, theta, r);
         if(intersection == null) return 0;
+        // is the intersection inside the circle?
         if(intersection.lengthSquared() >= radius*radius) return 0;
 
         // the intensity at the intersection depends on the relative angle of the two lines.
