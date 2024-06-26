@@ -12,8 +12,8 @@ import java.util.concurrent.locks.ReentrantLock;
  */
 public class OneLineOnImage extends JPanel implements RayIllustrator {
     private BufferedImage image;
-    private int showTheta=-1;
-    private int showR=-1;
+    private final ThetaR bestFound = new ThetaR(0,0,0);
+    private boolean showBest=false;
     private RadonThreader radonThreader;
     private RadonPanel singleRadon;
     private final ReentrantLock lock = new ReentrantLock();
@@ -46,10 +46,10 @@ public class OneLineOnImage extends JPanel implements RayIllustrator {
         g.fillRect(0,0,image.getWidth(),image.getHeight());
 
         for(LoomThread t : loom.selectedThreads) {
-            t.display(image);
+            t.display(g);
         }
-        for(LoomThread t : loom.potentialThreads) {
-            t.display(image);
+        for(LoomThread t : loom.allThreads) {
+            t.display(g);
         }
         singleRadon.setRadonTransform(new RadonTransform(image));
     }
@@ -75,12 +75,10 @@ public class OneLineOnImage extends JPanel implements RayIllustrator {
     }
 
     @Override
-    public void highlightLine(int angle, int r) {
-        this.showTheta = angle;
-        this.showR = r;
-
+    public void highlightLine(ThetaR tr) {
+        showBest = true;
+        bestFound.set(tr);
         if(image==null) return;
-
         if (lock.isLocked()) return;
         lock.lock();
         try {
@@ -90,6 +88,12 @@ public class OneLineOnImage extends JPanel implements RayIllustrator {
         }
     }
 
+    @Override
+    public void hideLine() {
+        showBest=false;
+        repaint();
+    }
+
     private void updateLine() {
         // show the line theta/r, where theta is the angle and r is the distance from the center.
         if(image == null) return;
@@ -97,34 +101,29 @@ public class OneLineOnImage extends JPanel implements RayIllustrator {
         Graphics2D g2 = image.createGraphics();
         RenderHintHelper.setRenderHints(g2);
 
-        g2.setColor(Color.BLACK);
-        g2.fillRect(0,0,image.getWidth(),image.getHeight());
-
-        if(showTheta>=0 && showTheta<180) {
+        if(showBest) {
             //System.out.println("showTheta="+showTheta+" showR="+showR);
-            double radius = Math.min(image.getWidth(), image.getHeight()) / 2.0;
-            double r = showR - radius;
-            double theta = Math.toRadians(showTheta);
-            var w2 = image.getWidth() / 2;
-            var h2 = image.getHeight() / 2;
+            LoomThread th = loom.findThreadClosestToThetaR(bestFound);
+            g2.setColor(Color.BLACK);
+            g2.fillRect(0,0,image.getWidth(),image.getHeight());
+            g2.setColor(th.col);
+            g2.translate(loom.radius,loom.radius);
+            g2.drawLine((int)th.start.x, (int)th.start.y, (int)th.end.x, (int)th.end.y);
+            g2.translate(-loom.radius,-loom.radius);
 
-            double s = Math.sin(theta);
-            double c = Math.cos(theta);
-            double d = Math.sqrt(w2*w2 - r*r);
-            int x0 = (int)(w2 + r * c - d * s);
-            int y0 = (int)(h2 + r * s + d * c);
-            int x1 = (int)(w2 + r * c + d * s);
-            int y1 = (int)(h2 + r * s - d * c);
+            if(singleRadon != null) {
+                singleRadon.setRadonTransform(new RadonTransform(loom.radius,th));
+            }
+        } else {
+            g2.setColor(Color.BLACK);
+            g2.fillRect(0,0,image.getWidth(),image.getHeight());
 
-            g2.setColor(Color.WHITE);
-            g2.drawLine(x0, y0, x1, y1);
+            if(singleRadon != null) {
+                singleRadon.setRadonTransform(new RadonTransform(image));
+            }
         }
         g2.dispose();
         repaint();
-        if(radonThreader!=null && singleRadon !=null) {
-            System.out.println("c");
-            singleRadon.setRadonTransform(new RadonTransform(image));
-        }
     }
 
     @Override

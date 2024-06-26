@@ -10,43 +10,43 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.Arrays;
 
+import ModernDocking.app.AppState;
 import ModernDocking.app.Docking;
 import ModernDocking.app.RootDockingPanel;
+import ModernDocking.exception.DockingLayoutException;
 import ModernDocking.ext.ui.DockingUI;
 import com.formdev.flatlaf.FlatLaf;
 import com.formdev.flatlaf.FlatLightLaf;
-import com.marginallyclever.weavingradon.core.MulticolorThreader;
-import com.marginallyclever.weavingradon.core.Loom;
-import com.marginallyclever.weavingradon.core.RenderHintHelper;
-import com.marginallyclever.weavingradon.core.MonochromaticThreader;
+import com.marginallyclever.weavingradon.core.*;
 import com.marginallyclever.weavingradon.ui.*;
 
 public class WeavingApp {
     public static final int DIAMETER = 800;
+    public static final int NUM_NAILS = 188;
     public static final int TITLEBAR_HEIGHT = 30;
     public static final int DOCKING_TAB_HEIGHT = 30;
-    public static final int ALPHA = 127;
+    public static final int ALPHA = 64;
     public static final int TOOLBAR_HEIGHT = 30;
 
     private final JFrame frame;
     private final ArrayList<DockingPanel> windows = new ArrayList<>();
     private final JFileChooser fileChooser;
 
-    private final Loom loom = new Loom(DIAMETER/2, 100);
+    private final Loom loom = new Loom(DIAMETER/2, NUM_NAILS);
     private final LoomPanel loomPanel;
     private final RadonPanel radonPanel;
 
-    //public final RadonThreader myThreader = new SingleThreader(Color.WHITE);
-    public final MulticolorThreader myThreader = new MulticolorThreader();
-    public final MonochromaticThreader radonThreaderC = new MonochromaticThreader(new Color(  0,255,255, ALPHA));
-    public final MonochromaticThreader radonThreaderM = new MonochromaticThreader(new Color(255,  0,255, ALPHA));
-    public final MonochromaticThreader radonThreaderY = new MonochromaticThreader(new Color(255,255,  0, ALPHA));
-    public final MonochromaticThreader radonThreaderK = new MonochromaticThreader(new Color(  0,  0,  0, ALPHA));
-    public final MonochromaticThreader radonThreaderW = new MonochromaticThreader(new Color(255,255,255, ALPHA));
+    private final RadonThreader myThreader;
+    /*
+    private final MonochromaticThreader radonThreaderC = new MonochromaticThreader(new Color(  0,255,255, ALPHA));
+    private final MonochromaticThreader radonThreaderM = new MonochromaticThreader(new Color(255,  0,255, ALPHA));
+    private final MonochromaticThreader radonThreaderY = new MonochromaticThreader(new Color(255,255,  0, ALPHA));
+    private final MonochromaticThreader radonThreaderK = new MonochromaticThreader(new Color(  0,  0,  0, ALPHA));
+    private final MonochromaticThreader radonThreaderW = new MonochromaticThreader(new Color(255,255,255, ALPHA));*/
 
     private final OneLineOnImage singleLine;
     private final RadonPanel singleRadon;
-    public final MonochromaticThreader radonThreaderB = new MonochromaticThreader(new Color(255,255,255));
+    private final MonochromaticThreader radonThreaderB = new MonochromaticThreader(new Color(255,255,255));
 
     public static void main(String[] args) {
         SwingUtilities.invokeLater(WeavingApp::new);
@@ -61,6 +61,23 @@ public class WeavingApp {
         //frame.setLocationByPlatform(true);
         frame.setLocationRelativeTo(null);
 
+        myThreader = new MonochromaticThreader(new Color(255,255,255, ALPHA));
+/*
+        MulticolorThreader mct = new MulticolorThreader();
+        mct.addColor(new Color(  0,255,255, ALPHA));
+        mct.addColor(new Color(255,  0,255, ALPHA));
+        mct.addColor(new Color(255,255,  0, ALPHA));
+        mct.addColor(new Color(  0,  0,  0, ALPHA));
+        mct.addColor(new Color(255,255,255, ALPHA));
+        myThreader = mct;
+*/
+/*
+        mct.addThreader(radonThreaderC);
+        mct.addThreader(radonThreaderM);
+        mct.addThreader(radonThreaderY);
+        mct.addThreader(radonThreaderK);
+        mct.addThreader(radonThreaderW);
+*/
         // create panels
         loomPanel = new LoomPanel();
         radonPanel = new RadonPanel(loomPanel);
@@ -70,16 +87,11 @@ public class WeavingApp {
         singleRadon = new RadonPanel(singleLine);
         singleLine.setRadon(radonThreaderB,singleRadon);
 
-        myThreader.addThreader(radonThreaderC);
-        myThreader.addThreader(radonThreaderM);
-        myThreader.addThreader(radonThreaderY);
-        myThreader.addThreader(radonThreaderK);
-        myThreader.addThreader(radonThreaderW);
-
         // setup the docking system and dock the panels.
         initDocking();
         createDefaultLayout();
         resetDefaultLayout();
+        saveAndRestoreLayout();
         frame.setJMenuBar(new MainMenu(this));
 
         // create a file chooser for images
@@ -152,6 +164,19 @@ public class WeavingApp {
         //Docking.dock(windows.get(1), windows.get(3), DockingRegion.CENTER);
     }
 
+    private void saveAndRestoreLayout() {
+        // now that the main frame is set up with the defaults, we can restore the layout
+        AppState.setPersistFile(new File("app.layout"));
+        AppState.setAutoPersist(true);
+
+        try {
+            AppState.restore();
+        } catch (DockingLayoutException e) {
+            // something happened trying to load the layout file, record it here
+            e.printStackTrace();
+        }
+    }
+
     public void openFile(ActionEvent actionEvent) {
         // show the file chooser dialog
         if(fileChooser.showOpenDialog(frame)== JFileChooser. APPROVE_OPTION) {
@@ -163,7 +188,7 @@ public class WeavingApp {
                 loom.reset();
                 // build a radon transform for every thread, based on the color filter for that threader.
                 myThreader.setLoomAndImage(loom,square);
-                myThreader.maskCurrentRadonByAllThreads();
+                myThreader.maskRadonTransformByAllThreads();
 
                 loomPanel.setLoomAndImage(loom,square);
                 radonPanel.setRadonTransform(myThreader.getRadonTransform());

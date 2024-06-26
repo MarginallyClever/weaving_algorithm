@@ -6,6 +6,7 @@ import java.awt.image.BufferedImage;
 
 public interface RayIllustrator {
     void setRadon(RadonThreader radonThreader, RadonPanel singleRadon);
-    void highlightLine(int theta, int r);
+    void highlightLine(ThetaR tr);
+    void hideLine();
     void setLoomAndImage(Loom loom, BufferedImage grey);
 }

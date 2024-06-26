@@ -2,6 +2,7 @@ package com.marginallyclever.weavingradon.ui;
 
 import com.marginallyclever.weavingradon.core.RadonTransform;
 import com.marginallyclever.weavingradon.core.RayIllustrator;
+import com.marginallyclever.weavingradon.core.ThetaR;
 
 import javax.swing.*;
 import java.awt.*;
@@ -15,7 +16,7 @@ import java.awt.event.MouseEvent;
 public class RadonPanel extends JPanel {
     private RadonTransform radonTransform;
     private final RayIllustrator rayIllustrator;
-    private int showR,showTheta;
+    private final ThetaR selectedThetaR = new ThetaR(0,0,0);
     private boolean showClickPoint = true;
     private JToolBar toolbar = new JToolBar();
 
@@ -38,12 +39,14 @@ public class RadonPanel extends JPanel {
             @Override
             public void mouseMoved(MouseEvent e) {
                 super.mouseMoved(e);
-                setToolTipText("Theta: "+e.getX()+", R: "+(e.getY()-toolbar.getPreferredSize().height));
+                if(radonTransform ==null) return;
+                setToolTipText("Theta: "+getTheta(e)+", R: "+getR(e));
             }
             @Override
             public void mouseDragged(MouseEvent e) {
                 super.mouseDragged(e);
-                setToolTipText("Theta: "+e.getX()+", R: "+(e.getY()-toolbar.getPreferredSize().height));
+                if(radonTransform ==null) return;
+                setToolTipText("Theta: "+getTheta(e)+", R: "+getR(e));
             }
         });
     }
@@ -56,9 +59,9 @@ public class RadonPanel extends JPanel {
         toggleClick.addActionListener(e -> {
             showClickPoint=!showClickPoint;
             if(!showClickPoint) {
-                rayIllustrator.highlightLine(-1,-1);
+                rayIllustrator.hideLine();
             } else {
-                rayIllustrator.highlightLine(showTheta,showR);
+                rayIllustrator.highlightLine(selectedThetaR);
             }
             repaint();
         });
@@ -69,13 +72,24 @@ public class RadonPanel extends JPanel {
 
     public void updateThetaR(MouseEvent e) {
         if(radonTransform ==null) return;
-        Dimension d = toolbar.getPreferredSize();
-        showTheta = e.getX();
-        showR = e.getY()-d.height;
-        if(showTheta<0 || showR<0 || showTheta>= radonTransform.getWidth() || showR>= radonTransform.getHeight()) return;
+        selectedThetaR.theta = getTheta(e);
+        selectedThetaR.r = getR(e);
 
+        int radius = radonTransform.getHeight()/2;
+        if(selectedThetaR.theta < 0 || selectedThetaR.theta >= radonTransform.getWidth()
+            || selectedThetaR.r < -radius || selectedThetaR.r >= radius ) return;
         //System.out.println(theta+","+r);
-        rayIllustrator.highlightLine(showTheta,showR);
+        rayIllustrator.highlightLine(selectedThetaR);
+    }
+
+    private int getTheta(MouseEvent e) {
+        return e.getX();
+    }
+
+    private int getR(MouseEvent e) {
+        Dimension d = toolbar.getPreferredSize();
+        int radius = radonTransform.getHeight()/2;
+        return (e.getY() - d.height) - radius;
     }
 
     public void setRadonTransform(RadonTransform image) {
@@ -95,10 +109,11 @@ public class RadonPanel extends JPanel {
 
         g.drawImage(radonTransform.getGraph(),0,0, radonTransform.getWidth(), radonTransform.getHeight(),this);
         if(showClickPoint) {
+            int radius = radonTransform.getHeight()/2;
             g.setColor(Color.RED);
-            g.fillOval(showTheta - 2, showR - 2, 4, 4);
+            g.fillOval((int)selectedThetaR.theta - 2, selectedThetaR.r-radius - 2, 4, 4);
             g.setColor(Color.GREEN);
-            g.drawOval(showTheta - 2, showR - 2, 4, 4);
+            g.drawOval((int)selectedThetaR.theta - 2, selectedThetaR.r-radius - 2, 4, 4);
         }
         g.translate(0,-d.height);
     }

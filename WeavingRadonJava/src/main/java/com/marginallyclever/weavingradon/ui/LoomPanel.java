@@ -20,8 +20,9 @@ public class LoomPanel extends JPanel implements RayIllustrator {
     private boolean showImage = true;
     private boolean showNails = true;
     private boolean showThread = true;
-    private int showTheta=-1;
-    private int showR=-1;
+    private final ThetaR bestFound = new ThetaR(0,0,0);
+    private boolean showBest=false;
+    private Color backgroundColor = Color.BLACK;
 
     private JToggleButton togglePlay = null;
 
@@ -56,9 +57,8 @@ public class LoomPanel extends JPanel implements RayIllustrator {
 
         JButton nextBest = new JButton("Next Best Thread");
         nextBest.addActionListener(e -> {
-            ThetaR bestFound = radonThreader.getNextBestThetaR();
-            showTheta = bestFound.theta;
-            showR = bestFound.r;
+            bestFound.set(radonThreader.getBestThetaR());
+            showBest = true;
             repaint();
         });
         toolbar.add(nextBest);
@@ -96,14 +96,19 @@ public class LoomPanel extends JPanel implements RayIllustrator {
 
     public void setImage(BufferedImage image) {
         this.image = image;
-
         repaint();
     }
 
     @Override
-    public void highlightLine(int theta, int r) {
-        this.showTheta = theta;
-        this.showR = r;
+    public void highlightLine(ThetaR tr) {
+        showBest=true;
+        bestFound.set(tr);
+        repaint();
+    }
+
+    @Override
+    public void hideLine() {
+        showBest=false;
         repaint();
     }
 
@@ -123,57 +128,53 @@ public class LoomPanel extends JPanel implements RayIllustrator {
 
         g2.translate(0, dim.height);
 
-        if (showImage && image != null) {
-            // Draw the image at (0, 0) with the size of the panel
-            g2.drawImage(image, 0, 0, image.getWidth(), image.getHeight(), this);
+        if (image != null) {
+            if(showImage) {
+                // Draw the image at (0, 0) with the size of the panel
+                g2.drawImage(image, 0, 0, image.getWidth(), image.getHeight(), this);
+            } else {
+                g2.setColor(backgroundColor);
+                g2.fillRect(0, 0, image.getWidth(), image.getHeight());
+            }
         } else {
-            g2.setColor(Color.WHITE);
-            g2.fillRect(0, 0, getWidth(), getHeight());
+            g2.clearRect(0, 0, getWidth(), getHeight());
         }
 
-        if(showNails && loom !=null) {
-            int r = NAIL_RADIUS/2;
-            g2.translate(-r,-r);
-            // fill the ovals
-            g2.setColor(Color.RED);
-            for(Vector2d nail : loom.nails) {
-                g2.fillOval((int)nail.x, (int)nail.y, NAIL_RADIUS, NAIL_RADIUS);
-            }
-            // draw the borders
-            g2.setColor(Color.WHITE);
-            for(Vector2d nail : loom.nails) {
-                g2.drawOval((int)nail.x, (int)nail.y, NAIL_RADIUS, NAIL_RADIUS);
-            }
-            g2.translate(r,r);
-        }
+        if(loom!=null) {
+            g2.translate(loom.radius, loom.radius);
 
-        if(showThread && loom !=null) {
-            for(LoomThread tc : loom.selectedThreads) {
-                g2.setColor(tc.col);
-                g2.drawLine((int)tc.start.x,
-                            (int)tc.start.y,
-                            (int)tc.end.x,
-                            (int)tc.end.y);
+            if (showNails) {
+                int r = NAIL_RADIUS / 2;
+                g2.translate(-r, -r);
+                // fill the ovals
+                g2.setColor(Color.RED);
+                for (Vector2d nail : loom.nails) {
+                    g2.fillOval((int) nail.x, (int) nail.y, NAIL_RADIUS, NAIL_RADIUS);
+                }
+                // draw the borders
+                g2.setColor(Color.WHITE);
+                for (Vector2d nail : loom.nails) {
+                    g2.drawOval((int) nail.x, (int) nail.y, NAIL_RADIUS, NAIL_RADIUS);
+                }
+                g2.translate(r, r);
             }
+
+            if (showThread) {
+                for (LoomThread tc : loom.selectedThreads) {
+                    g2.setColor(tc.col);
+                    g2.drawLine((int) tc.start.x,
+                            (int) tc.start.y,
+                            (int) tc.end.x,
+                            (int) tc.end.y);
+                }
+            }
+            g2.translate(-loom.radius, -loom.radius);
         }
 
         // show the line theta/r, where theta is the angle and r is the distance from the center.
-        if(image != null && showTheta>=0 && showTheta<180) {
-            double theta = Math.toRadians(showTheta);
+        if(image != null && showBest) {
             g2.setColor(Color.GREEN);
-            var w2 = image.getWidth()/2;
-            var h2 = image.getHeight()/2;
-
-            double r = showR - loom.radius;
-            double s = Math.sin(theta);
-            double c = Math.cos(theta);
-            double d = Math.sqrt(w2*w2 - r*r);
-            int x0 = (int)(w2 + r * c - d * s);
-            int y0 = (int)(h2 + r * s + d * c);
-            int x1 = (int)(w2 + r * c + d * s);
-            int y1 = (int)(h2 + r * s - d * c);
-
-            g2.drawLine(x0,y0,x1,y1);
+            bestFound.display(g2,image.getWidth()/2);
         }
 
         g2.translate(0,-dim.height);
