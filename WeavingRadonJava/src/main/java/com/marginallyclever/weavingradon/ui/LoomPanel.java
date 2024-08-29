@@ -84,15 +84,15 @@ public class LoomPanel extends JPanel implements RayIllustrator {
             }
         });
 
-        JButton export = new JButton("Export");
-        export.addActionListener(this::export);
-        toolbar.add(export);
-
         slider = new JSlider(0, 0, 0);
         slider.addChangeListener(e -> {
             repaint();
         });
         toolbar.add(slider);
+
+        JButton export = new JButton("Export");
+        export.addActionListener(this::export);
+        toolbar.add(export);
 
         add(toolbar, BorderLayout.NORTH);
     }
