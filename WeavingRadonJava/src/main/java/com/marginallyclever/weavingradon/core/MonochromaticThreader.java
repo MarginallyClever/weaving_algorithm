@@ -22,16 +22,20 @@ public class MonochromaticThreader extends RadonThreader {
 
     /**
      * get the next best thread, add it to the loom, and subtract it from the current radon image.
+     *
+     * @return
      */
     @Override
-    public void addNextBestThread() {
-        if (loom.allThreads.isEmpty()) return;
+    public boolean addNextBestThread() {
+        if (loom.allThreads.isEmpty()) return false;
         ThetaR tr = getBestThetaR();
-        //System.out.println("best thetaR: " + tr);
+        System.out.println("best thetaR: " + tr.intensity);
+        if(tr.intensity==0) return false;
         LoomThread bestThread = loom.findThreadClosestToThetaR(tr);
         //System.out.println("best thread: " + bestThread);
         loom.selectThread(bestThread);
         radonTransform.subtractThread(bestThread);
+        return true;
     }
 
     public Color getColor() {

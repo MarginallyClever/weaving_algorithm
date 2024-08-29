@@ -1,39 +1,29 @@
 <?xml version="1.0" ?>
 <app-layout>
-<layout main-frame="true" location="487,73" size="1208,922" state="0">
+<layout main-frame="true" location="647,49" size="821,904" state="0">
 <westToolbar>
 </westToolbar>
 <eastToolbar>
 </eastToolbar>
 <southToolbar>
 </southToolbar>
-<split orientation="1" divider-proportion="0.7118786573410034">
-<left>
 <tabbed>
 <selectedTab persistentID="8e50154c-a149-4e95-9db5-4611d24cc0cc">
 </selectedTab>
 <tab persistentID="8e50154c-a149-4e95-9db5-4611d24cc0cc">
 <properties></properties>
 </tab>
-<tab persistentID="e675ab55-fea9-49a5-a04d-51daa9cd31e6">
-<properties></properties>
-</tab>
 </tabbed>
-</left>
-<right>
-<tabbed>
-<selectedTab persistentID="f2308391-8388-4f90-89f0-61caca03eb18">
-</selectedTab>
-<tab persistentID="f2308391-8388-4f90-89f0-61caca03eb18">
-<properties></properties>
-</tab>
-<tab persistentID="eb1ea92b-fc66-4c54-a5a9-3e4f8203bd5d">
-<properties></properties>
-</tab>
-</tabbed>
-</right>
-</split>
 </layout>
 <undocked>
+<simple persistentID="eb1ea92b-fc66-4c54-a5a9-3e4f8203bd5d" class-name="com.marginallyclever.weavingradon.ui.DockingPanel">
+<properties></properties>
+</simple>
+<simple persistentID="e675ab55-fea9-49a5-a04d-51daa9cd31e6" class-name="com.marginallyclever.weavingradon.ui.DockingPanel">
+<properties></properties>
+</simple>
+<simple persistentID="f2308391-8388-4f90-89f0-61caca03eb18" class-name="com.marginallyclever.weavingradon.ui.DockingPanel">
+<properties></properties>
+</simple>
 </undocked>
 </app-layout>

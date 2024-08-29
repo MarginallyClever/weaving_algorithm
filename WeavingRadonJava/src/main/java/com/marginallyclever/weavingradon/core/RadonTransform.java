@@ -23,7 +23,8 @@ public class RadonTransform {
         }
     }
 
-    private final BufferedImage graph;
+    private final BufferedImage heatMap;
+    private final double [] graph;
     private final int radius;
 
     public RadonTransform(BufferedImage source) {
@@ -37,7 +38,8 @@ public class RadonTransform {
         int diameter = source.getWidth();
 
         radius = diameter / 2;
-        graph = new BufferedImage(180, diameter, BufferedImage.TYPE_INT_ARGB);
+        heatMap = new BufferedImage(180, diameter, BufferedImage.TYPE_INT_ARGB);
+        graph = new double[180 * diameter];
 
         // run in parallel because faster.
         IntStream.range(0, 180).parallel().forEach(theta -> {
@@ -45,7 +47,8 @@ public class RadonTransform {
             double c = cosTheta[theta];
             double s = sinTheta[theta];
             // three color channels + count of samples
-            int sr, sg, sb, count;
+            double sr, sg, sb;
+            int count;
 
             for (int r = -radius; r < radius; r++) {
                 sr = 0;
@@ -90,38 +93,56 @@ public class RadonTransform {
                 }
 
                 if(count>0) {
-                    int r2 = (int)( (double)sr / (double)count );
-                    int g2 = (int)( (double)sg / (double)count );
-                    int b2 = (int)( (double)sb / (double)count );
-                    //int v = (int)Math.min(255, Math.max(0, (r2 + g2 + b2) / 3.0));
-                    graph.setRGB(theta, r + radius, new Color(r2,g2,b2).getRGB());
+                    double i = (sr+sg+sb)/count;
+                    setIntensity(theta,r,i);
                 }
             }
         });
     }
 
-    // calculate the intensity at the given theta and r.  Assumes the "image" is a square of size radius*2.
-    // assumes there is a single line on the image described by thread.thetaR.
+    /**
+     * calculate the intensity at the given theta and r.
+     * Assumes the "image" is a square of size radius*2.
+     * Assumes there is a single line on the image described by thread.thetaR.
+     * @param radius the radius of the image.
+     * @param thread the thread to test against.
+     */
     public RadonTransform(int radius,LoomThread thread) {
+        this.radius = radius;
         int diameter = radius*2;
 
         final double scale = 1.0 / radius;
-        this.radius = diameter / 2;
-        graph = new BufferedImage(180, diameter, BufferedImage.TYPE_INT_ARGB);
+        heatMap = new BufferedImage(180, diameter, BufferedImage.TYPE_INT_ARGB);
+        graph = new double[180 * diameter];
 
-        // run in parallel because faster.
+        double a = thread.col.getAlpha() / 256.0;
+        double intensity = (thread.col.getRed() + thread.col.getGreen() + thread.col.getBlue()) * a/3.0;
+
+        /// instead of `for(int theta = 0; theta < 180; theta++) {` run in parallel because faster.
         IntStream.range(0, 180).parallel().forEach(theta -> {
-        //for(int theta = 0; theta < 180; theta++) {
             for (int r = -radius; r < radius; r++) {
-                double v = testIntersection(thread,theta,r) * scale;
-                v = Math.max(0,Math.min(1,v));
-                int r2 = (int)( v * (double)thread.col.getRed() );
-                int g2 = (int)( v * (double)thread.col.getGreen() );
-                int b2 = (int)( v * (double)thread.col.getBlue() );
-
-                graph.setRGB(theta, r + radius, new Color(r2,g2,b2).getRGB());
+                double intersection = testIntersection(thread,theta,r) * scale;
+                double finalIntensity = intersection * intensity;
+                setIntensity(theta, r, finalIntensity);
             }
         });
+    }
+
+    /**
+     * scale the values in the graph to fit in the range 0...255 using the maxIntensity.
+     */
+    private void updateHeatMap() {
+        int diameter = radius*2;
+        double maxIntensity = 0;
+        for (double v : graph) {
+            maxIntensity = Math.max(maxIntensity, v);
+        }
+
+        for(int i=0;i<graph.length;++i) {
+            int intensity = (int)(graph[i] * 255 / maxIntensity);
+            intensity = Math.max(0,Math.min(255,intensity));
+            heatMap.setRGB(i/diameter,i%diameter, getHeatMapColor(intensity).getRGB());
+        }
     }
 
     /**
@@ -132,7 +153,7 @@ public class RadonTransform {
      * @return a value between 0 and radius.
      */
     public double testIntersection(LoomThread thread, int theta, int r) {
-        // find the intersection of line theta/r and the thread.
+        // Find the intersection of line theta/r and the thread.
         // if the lines are parallel (same theta) and overlapping (same r) then the two lines are equal.
         if(Math.abs(thread.thetaR.theta-theta)<1e-6) {
             if(Math.abs(thread.thetaR.r-r)<1e-6) {
@@ -180,20 +201,30 @@ public class RadonTransform {
     }
 
     public int getWidth() {
-        return graph.getWidth();
+        return heatMap.getWidth();
     }
 
     public int getHeight() {
-        return graph.getHeight();
+        return heatMap.getHeight();
     }
 
     /**
      * @param theta 0...180
      * @param r -radius...radius
-     * @param i 0...255
+     * @param intensity 0...255
      */
-    public void setIntensity(int theta, int r, int i) {
-        graph.setRGB(theta, r+radius, new Color(i,i,i).getRGB());
+    public void setIntensity(int theta, int r, double intensity) {
+        int diameter = radius*2;
+        graph[theta * diameter + r + radius] = intensity;
+    }
+
+    /**
+     * @param i 0...255
+     * @return a color in the rainbow spectrum.
+     */
+    private Color getHeatMapColor(int i) {
+        return new Color(i,i,i);  // greyscale
+        //return new Color(Color.HSBtoRGB(i/256.0f,1f,1f));  // rainbow
     }
 
     /**
@@ -201,14 +232,9 @@ public class RadonTransform {
      * @param r -radius...radius
      * @return 0...255
      */
-    public int getIntensity(int theta, int r) {
-        Color c = new Color(graph.getRGB(theta, r+radius));
-        return (c.getRed()+c.getGreen()+c.getBlue()) / 3;
-    }
-
-
-    private void setColor(int theta, int r, Color color) {
-        graph.setRGB(theta, r+radius, color.getRGB());
+    public double getIntensity(int theta, int r) {
+        int diameter = radius*2;
+        return graph[theta * diameter + r + radius];
     }
 
     /**
@@ -217,30 +243,29 @@ public class RadonTransform {
      * @param r -radius...radius
      * @return the color at the given theta and y.
      */
+    @Deprecated
     public Color getColor(double theta, int r) {
-        return new Color(graph.getRGB((int)theta, r+radius));
-    }
-
-    public void subtractThreadB(LoomThread thread) {
-        if (thread == null) throw new IllegalArgumentException("thread cannot be null");
-        RadonTransform oneThreadRadonTransform = new RadonTransform(radius, thread);
-        subtract(oneThreadRadonTransform);
+        return new Color(heatMap.getRGB((int)theta, r+radius));
     }
 
     public void subtractThread(LoomThread thread) {
-        subtractThreadB(thread);
+        if (thread == null) throw new IllegalArgumentException("thread cannot be null");
+        RadonTransform oneThreadRadonTransform = new RadonTransform(radius, thread);
+        subtract(oneThreadRadonTransform);
     }
 
     // this -= remove
     public void subtract(RadonTransform remove) {
         for(int theta=0;theta<180;++theta) {
             for(int r=-radius;r<radius;++r) {
-                Color currentIntensity = getColor(theta,r);
-                Color threadIntensity = remove.getColor(theta,r);
-                Color c = subtractColor(currentIntensity, threadIntensity);
-                setColor(theta,r,c);
+                subtract(remove,theta,r);
             }
         }
+    }
+
+    public void subtract(RadonTransform remove,int theta, int r) {
+        double intensity = getIntensity(theta, r) - remove.getIntensity(theta, r);
+        setIntensity(theta, r, intensity);
     }
 
     private Color subtractColor(Color c1, Color c2) {
@@ -253,12 +278,18 @@ public class RadonTransform {
         return new Color((int) r, (int) g, (int) b);
     }
 
-    public BufferedImage getGraph() {
-        return graph;
+    public BufferedImage getHeatMap() {
+        updateHeatMap();
+        return heatMap;
     }
 
+    /**
+     * Mask the current radon transform with the filter.  Keep all parts of this transform where the filter image
+     * is equal to the mask color.
+     * @param filter the filter image
+     * @param maskColor the color to mask with
+     */
     public void maskWith(BufferedImage filter,int maskColor) {
-        // mask currentRadonImage with filter.
         for(int theta = 0;theta<180;++theta) {
             for(int r = -radius;r<radius;++r) {
                 if(filter.getRGB(theta,r+radius) != maskColor) {

@@ -25,10 +25,17 @@ public class Loom {
     public Loom(int radius,int numNails) {
         this.radius = radius;
         this.numNails = numNails;
-        reset();
+        createNailsAndThreads();
     }
 
-    public void reset() {
+    public Loom(Loom other) {
+        this.radius = other.radius;
+        this.numNails = other.numNails;
+        createNailsAndThreads();
+    }
+
+    // Effectively reset the loom.
+    public void createNailsAndThreads() {
         createNails();
         createThreads();
     }
@@ -145,5 +152,16 @@ public class Loom {
 
     public int getRadius() {
         return radius;
+    }
+
+    public int getNailIndex(Vector2d point) {
+        Vector2d d = new Vector2d();
+        for(Vector2d n : nails) {
+            d.sub(n,point);
+            if(d.lengthSquared() < 1) {
+                return nails.indexOf(n);
+            }
+        }
+        return -1;
     }
 }

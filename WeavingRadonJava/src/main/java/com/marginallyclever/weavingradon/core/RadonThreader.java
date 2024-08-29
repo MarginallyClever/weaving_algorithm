@@ -12,6 +12,11 @@ public abstract class RadonThreader {
     protected int radius;
     protected RadonTransform radonTransform;
 
+    public void setLoomAndImage(Loom loom, BufferedImage image) {
+        setLoom(loom);
+        setImage(image);
+    }
+
     public void setLoom(Loom loom) {
         this.loom = loom;
     }
@@ -23,9 +28,15 @@ public abstract class RadonThreader {
 
     /**
      * get the next best thread, add it to the loom, and subtract it from the current radon image.
+     *
+     * @return false if there are no more threads to add.
      */
-    abstract public void addNextBestThread();
+    abstract public boolean addNextBestThread();
 
+    /**
+     * Mask the current radon image with the current threads.
+     * This is achieved by generating a mask of all possible threads and then masking the radon image with it.
+     */
     public void maskRadonTransformByAllThreads() {
         System.out.println("filterRadonByThreads multicolor");
         var filter = new BufferedImage(radonTransform.getWidth(), radonTransform.getHeight(), BufferedImage.TYPE_INT_ARGB);
@@ -51,7 +62,7 @@ public abstract class RadonThreader {
         // Find the pixel with the maximum intensity in the current radon transform
         for(int r=-radius;r<radius;++r) {
             for(int theta = 0; theta<180; ++theta) {
-                int intensity = radonTransform.getIntensity(theta, r);
+                double intensity = radonTransform.getIntensity(theta, r);
                 if (intensity > bestFound.intensity) {
                     bestFound.set(theta,r,intensity);
                 }
@@ -62,10 +73,5 @@ public abstract class RadonThreader {
 
     public RadonTransform getRadonTransform() {
         return radonTransform;
-    }
-
-    public void setLoomAndImage(Loom loom, BufferedImage image) {
-        setLoom(loom);
-        setImage(image);
     }
 }

@@ -37,12 +37,6 @@ public class WeavingApp {
     private final RadonPanel radonPanel;
 
     private final RadonThreader myThreader;
-    /*
-    private final MonochromaticThreader radonThreaderC = new MonochromaticThreader(new Color(  0,255,255, ALPHA));
-    private final MonochromaticThreader radonThreaderM = new MonochromaticThreader(new Color(255,  0,255, ALPHA));
-    private final MonochromaticThreader radonThreaderY = new MonochromaticThreader(new Color(255,255,  0, ALPHA));
-    private final MonochromaticThreader radonThreaderK = new MonochromaticThreader(new Color(  0,  0,  0, ALPHA));
-    private final MonochromaticThreader radonThreaderW = new MonochromaticThreader(new Color(255,255,255, ALPHA));*/
 
     private final OneLineOnImage singleLine;
     private final RadonPanel singleRadon;
@@ -60,24 +54,17 @@ public class WeavingApp {
         frame.setSize(DIAMETER, DIAMETER + TITLEBAR_HEIGHT + DOCKING_TAB_HEIGHT + TOOLBAR_HEIGHT);
         //frame.setLocationByPlatform(true);
         frame.setLocationRelativeTo(null);
-
+/*/
         myThreader = new MonochromaticThreader(new Color(255,255,255, ALPHA));
-/*
+/*/
         MulticolorThreader mct = new MulticolorThreader();
-        mct.addColor(new Color(  0,255,255, ALPHA));
-        mct.addColor(new Color(255,  0,255, ALPHA));
-        mct.addColor(new Color(255,255,  0, ALPHA));
-        mct.addColor(new Color(  0,  0,  0, ALPHA));
-        mct.addColor(new Color(255,255,255, ALPHA));
+        mct.addThreader(new MonochromaticThreader(new Color(  0,255,255, ALPHA)));
+        mct.addThreader(new MonochromaticThreader(new Color(255,  0,255, ALPHA)));
+        mct.addThreader(new MonochromaticThreader(new Color(255,255,  0, ALPHA)));
+        mct.addThreader(new MonochromaticThreader(new Color(  0,  0,  0, ALPHA)));
+        mct.addThreader(new MonochromaticThreader(new Color(255,255,255, ALPHA)));
         myThreader = mct;
-*/
-/*
-        mct.addThreader(radonThreaderC);
-        mct.addThreader(radonThreaderM);
-        mct.addThreader(radonThreaderY);
-        mct.addThreader(radonThreaderK);
-        mct.addThreader(radonThreaderW);
-*/
+//*/
         // create panels
         loomPanel = new LoomPanel();
         radonPanel = new RadonPanel(loomPanel);
@@ -184,8 +171,7 @@ public class WeavingApp {
             System.out.println("Open file: "+path);
             try {
                 BufferedImage square = makeSquare(ImageIO.read(new File(path)));
-                // build the nails and threads
-                loom.reset();
+                loom.createNailsAndThreads();
                 // build a radon transform for every thread, based on the color filter for that threader.
                 myThreader.setLoomAndImage(loom,square);
                 myThreader.maskRadonTransformByAllThreads();

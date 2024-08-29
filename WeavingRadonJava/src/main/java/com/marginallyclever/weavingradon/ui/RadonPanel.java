@@ -101,13 +101,13 @@ public class RadonPanel extends JPanel {
     protected void paintComponent(Graphics g) {
         super.paintComponent(g);
         if(radonTransform ==null) return;
-        Image graph = radonTransform.getGraph();
+        Image graph = radonTransform.getHeatMap();
         if(graph==null) return;
 
         Dimension d = toolbar.getPreferredSize();
         g.translate(0,d.height);
 
-        g.drawImage(radonTransform.getGraph(),0,0, radonTransform.getWidth(), radonTransform.getHeight(),this);
+        g.drawImage(radonTransform.getHeatMap(),0,0, radonTransform.getWidth(), radonTransform.getHeight(),this);
         if(showClickPoint) {
             int radius = radonTransform.getHeight()/2;
             g.setColor(Color.RED);

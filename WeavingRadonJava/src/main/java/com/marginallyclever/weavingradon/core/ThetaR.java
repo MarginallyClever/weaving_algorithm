@@ -3,8 +3,11 @@ package com.marginallyclever.weavingradon.core;
 import java.awt.*;
 
 public class ThetaR {
+    // Theta is in the range 0...180.
     public double theta=0;
+    // r is in the range -radius...radius for a given Loom or BufferedImage.
     public int r=0;
+    // intensity is the value of the pixel at theta,r.  it is always >=0.
     public double intensity=0;
 
     public ThetaR(double theta, int r,double intensity) {

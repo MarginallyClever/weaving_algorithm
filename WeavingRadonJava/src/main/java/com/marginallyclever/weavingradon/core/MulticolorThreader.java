@@ -1,6 +1,7 @@
 package com.marginallyclever.weavingradon.core;
 
 import java.awt.*;
+import java.awt.image.BufferedImage;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -8,40 +9,68 @@ import java.util.List;
  * A GroupRadonThreader is a RadonThreader that can handle multiple colors.
  */
 public class MulticolorThreader extends RadonThreader {
-    private final List<Color> colors = new ArrayList<>();
+    private final List<MonochromaticThreader> colors = new ArrayList<>();
 
-    public void addColor(Color c) {
-        colors.add(c);
+    private static class ThreaderChoice {
+        public MonochromaticThreader threader;
+        public ThetaR bestThetaR;
+    }
+
+    @Override
+    public void setLoomAndImage(Loom loom, BufferedImage image) {
+        for(MonochromaticThreader threader : colors) {
+            threader.setLoomAndImage(loom, image);
+        }
+        setLoom(loom);
+    }
+
+    @Override
+    public void maskRadonTransformByAllThreads() {
+        for(MonochromaticThreader threader : colors) {
+            threader.maskRadonTransformByAllThreads();
+        }
     }
 
     /**
      * get the next best thread, add it to the loom, and subtract it from the current radon image.
+     *
+     * @return
      */
     @Override
-    public void addNextBestThread() {
-        if (loom.allThreads.isEmpty()) return;
-        ThetaR tr = getBestThetaR();
-        LoomThread bestThread = loom.findThreadClosestToThetaR(tr);
-        Color c = radonTransform.getColor(bestThread.thetaR.theta, bestThread.thetaR.r);
-        bestThread.col = getNearestColor(c);
-        loom.selectThread(bestThread);
-        radonTransform.subtractThread(bestThread);
+    public boolean addNextBestThread() {
+        if (loom.allThreads.isEmpty()) return false;
+        ThreaderChoice choice = getBestThreaderChoice();
+        System.out.println("best thetaR: " + choice.bestThetaR.intensity);// choice.threader.getColor() + " @ "+choice.bestThetaR);
+        if(choice.bestThetaR.intensity==0) return false;
+        LoomThread bestThread = loom.findThreadClosestToThetaR(choice.bestThetaR);
+
+        choice.threader.getRadonTransform().subtractThread(bestThread);
+
+        LoomThread selection = new LoomThread(bestThread);
+        selection.col = choice.threader.getColor();
+        loom.selectThread(selection);
+        return true;
     }
 
-    private Color getNearestColor(Color c) {
-        Color nearest = null;
-        double nearestDistanceSquared = Double.MAX_VALUE;
-        for(Color color : colors) {
-            double distanceSquared = /*Math.sqrt*/(
-                    Math.pow(color.getRed() - c.getRed(), 2) +
-                    Math.pow(color.getGreen() - c.getGreen(), 2) +
-                    Math.pow(color.getBlue() - c.getBlue(), 2)
-            );
-            if (distanceSquared < nearestDistanceSquared) {
-                nearest = color;
-                nearestDistanceSquared = distanceSquared;
+    /**
+     * Finds the best thread in the best color to add to the loom.
+     */
+    public ThreaderChoice getBestThreaderChoice() {
+        ThreaderChoice bestFound = new ThreaderChoice();
+
+        double intensity = 0;
+        for(MonochromaticThreader threader : colors) {
+            var tr = threader.getBestThetaR();
+            if(intensity < tr.intensity) {
+                bestFound.threader = threader;
+                bestFound.bestThetaR = tr;
+                intensity = tr.intensity;
             }
         }
-        return nearest;
+        return bestFound;
+    }
+
+    public void addThreader(MonochromaticThreader radonThreader) {
+        colors.add(radonThreader);
     }
 }
