@@ -1,9 +1,8 @@
-import com.marginallyclever.weavingradon.core.LoomThread;
-import com.marginallyclever.weavingradon.core.RadonTransform;
+package com.marginallyclever.weavingradon.core;
+
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
-import javax.vecmath.Vector2d;
 import java.awt.*;
 
 public class RadonTransformTest {
@@ -14,8 +13,8 @@ public class RadonTransformTest {
         int theta = 0;
 
         LoomThread thread = new LoomThread(
-                new Vector2d(radius,0),
-                new Vector2d(radius,radius*2),
+                new Point(radius,0),
+                new Point(radius,radius*2),
                 theta,
                 r,
                 Color.WHITE

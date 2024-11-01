@@ -3,17 +3,18 @@ package com.marginallyclever.weavingradon.ui;
 import com.marginallyclever.weavingradon.core.*;
 
 import javax.swing.*;
-import javax.vecmath.Vector2d;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.ComponentAdapter;
+import java.awt.event.ComponentEvent;
 import java.awt.image.BufferedImage;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.IOException;
 import java.util.ListIterator;
 
-public class LoomPanel extends JPanel implements RayIllustrator {
+public class LoomPanel extends JPanel implements RayIllustrator, LoomEventListener {
     private Loom loom;
     public static final int NAIL_RADIUS = 3;
 
@@ -27,10 +28,12 @@ public class LoomPanel extends JPanel implements RayIllustrator {
     private boolean showThread = true;
     private final ThetaR bestFound = new ThetaR(0,0,0);
     private boolean showBest=false;
-    private Color backgroundColor = Color.BLACK;
+    private Color backgroundColor = Color.WHITE;
     private JSlider slider = null;
 
     private JToggleButton togglePlay = null;
+
+    private LoomCanvas canvas = new LoomCanvas(1,1);
 
     public LoomPanel() {
         super(new BorderLayout());
@@ -44,7 +47,6 @@ public class LoomPanel extends JPanel implements RayIllustrator {
                 togglePlay.setSelected(false);
             }
         });
-
 
         toolbar.setFloatable(false);
 
@@ -95,6 +97,29 @@ public class LoomPanel extends JPanel implements RayIllustrator {
         toolbar.add(export);
 
         add(toolbar, BorderLayout.NORTH);
+
+
+        // Add a ComponentListener to handle resizing
+        addComponentListener(new ComponentAdapter() {
+            @Override
+            public void componentResized(ComponentEvent e) {
+                int newWidth = getWidth();
+                int newHeight = getHeight();
+                resizeLoomCanvas();
+                repaint();
+            }
+        });
+    }
+
+    private void resizeLoomCanvas() {
+        if(loom==null) return;
+        canvas = new LoomCanvas(loom.radius*2, loom.radius*2);
+        // draw in reverse order so the most important thread (first in list) is on the top of the stack.
+        ListIterator<LoomThread> iterator = loom.selectedThreads.listIterator(slider.getValue());
+        while (iterator.hasPrevious()) {
+            LoomThread tc = iterator.previous();
+            canvas.addLineOnTop(tc);
+        }
     }
 
     private void export(ActionEvent actionEvent) {
@@ -163,7 +188,6 @@ public class LoomPanel extends JPanel implements RayIllustrator {
     public boolean makeStep() {
         if(!radonThreader.addNextBestThread()) return false;
         radonPanel.setRadonTransform(radonThreader.getRadonTransform());
-        if(showThread) repaint();
         showBest=false;
         slider.setMaximum(loom.selectedThreads.size());
         slider.setValue(loom.selectedThreads.size());
@@ -192,6 +216,7 @@ public class LoomPanel extends JPanel implements RayIllustrator {
     public void setLoomAndImage(Loom loom, BufferedImage grey) {
         setLoom(loom);
         setImage(grey);
+        resizeLoomCanvas();
     }
 
     @Override
@@ -200,7 +225,6 @@ public class LoomPanel extends JPanel implements RayIllustrator {
 
         Graphics2D g2 = (Graphics2D) g.create();
         RenderHintHelper.setRenderHints(g2);
-        g2.setStroke(new BasicStroke(1f));
 
         // adjust downward so we don't paint over the toolbar
         Dimension dim = toolbar.getPreferredSize();
@@ -211,17 +235,15 @@ public class LoomPanel extends JPanel implements RayIllustrator {
             g2.clearRect(0, 0, getWidth(), getHeight());
         } else if(showImage) {
             // Draw the image at (0, 0) with the size of the panel
-            g2.drawImage(image, 0, 0, image.getWidth(), image.getHeight(), this);
+            g2.drawImage(image, 0, 0, this);
         } else {
             g2.setColor(backgroundColor);
             g2.fillRect(0, 0, image.getWidth(), image.getHeight());
         }
 
         if(loom!=null) {
-            g2.translate(loom.radius, loom.radius);
             if (showNails) drawNails(g2);
             if (showThread) drawAllTheads(g2);
-            g2.translate(-loom.radius, -loom.radius);
         }
 
         // show the line theta/r, where theta is the angle and r is the distance from the center.
@@ -230,21 +252,30 @@ public class LoomPanel extends JPanel implements RayIllustrator {
             bestFound.display(g2,image.getWidth()/2);
         }
 
-        g2.translate(0,-dim.height);
+        g2.dispose();
+    }
+
+    private void drawAllTheads(Graphics2D g2) {
+        if(slider.getValue()==slider.getMaximum()) {
+            g2.drawImage(canvas.getImage(), 0, 0, this);
+        } else {
+            g2.translate(loom.radius+2, loom.radius+2);
+            drawAllThreadsReverseOrder(g2);
+            g2.translate(-loom.radius-2, -loom.radius-2);
+        }
     }
 
     /**
-     * Draw all the threads in the loom.  This is a forward pass that draws the threads in the order they were added.
+     * Draw all the threads in the loom.  This is a reverse pass so that the first thread appears on top of the pile.
      * As threads are added it takes longer and longer to draw.
      * @param g2 the graphics context
      */
-    private void drawAllTheads(Graphics2D g2) {
-        // draw in reverse order so the most important thread (first in list) is on the top of the stack.
+    private void drawAllThreadsReverseOrder(Graphics2D g2) {
         ListIterator<LoomThread> iterator = loom.selectedThreads.listIterator(slider.getValue());
         while (iterator.hasPrevious()) {
-            LoomThread tc = iterator.previous();
-            drawOneThread(g2, tc);
+            drawOneThread(g2, iterator.previous());
         }
+
     }
 
     /**
@@ -254,26 +285,23 @@ public class LoomPanel extends JPanel implements RayIllustrator {
      */
     private void drawOneThread(Graphics2D g2, LoomThread thread) {
         g2.setColor(thread.col);
-        g2.drawLine((int)thread.start.x,
-                    (int)thread.start.y,
-                    (int)thread.end.x,
-                    (int)thread.end.y);
+        g2.drawLine(thread.start.x, thread.start.y, thread.end.x, thread.end.y);
     }
 
     private void drawNails(Graphics2D g2) {
         int r = NAIL_RADIUS / 2;
-        g2.translate(-r, -r);
+        g2.translate(loom.radius, loom.radius);
         // fill the ovals
         g2.setColor(Color.RED);
-        for (Vector2d nail : loom.nails) {
-            g2.fillOval((int) nail.x, (int) nail.y, NAIL_RADIUS, NAIL_RADIUS);
+        for (Point nail : loom.nails) {
+            g2.fillOval(nail.x, nail.y, NAIL_RADIUS, NAIL_RADIUS);
         }
         // draw the borders
         g2.setColor(Color.WHITE);
-        for (Vector2d nail : loom.nails) {
-            g2.drawOval((int) nail.x, (int) nail.y, NAIL_RADIUS, NAIL_RADIUS);
+        for (Point nail : loom.nails) {
+            g2.drawOval(nail.x, nail.y, NAIL_RADIUS, NAIL_RADIUS);
         }
-        g2.translate(r, r);
+        g2.translate(-loom.radius, -loom.radius);
     }
 
     @Override
@@ -284,5 +312,26 @@ public class LoomPanel extends JPanel implements RayIllustrator {
 
     public void setLoom(Loom loom) {
         this.loom = loom;
+        loom.addListener(this);
+    }
+
+    // on resize
+    @Override
+    public void invalidate() {
+        super.invalidate();
+        if(loom!=null) {
+            loom.radius = Math.min(getWidth(),getHeight())/2;
+        }
+    }
+
+    @Override
+    public void threadAdded(LoomThread thread) {
+        if(canvas==null) return;
+        if(slider.getValue()==slider.getMaximum()) {
+            canvas.addLineUnderneath(thread);
+        }
+        if(showThread) {
+            repaint();
+        }
     }
 }

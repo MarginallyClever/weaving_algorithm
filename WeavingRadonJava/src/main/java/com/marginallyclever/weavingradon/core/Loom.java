@@ -2,9 +2,10 @@ package com.marginallyclever.weavingradon.core;
 
 import com.marginallyclever.weavingradon.WeavingApp;
 
-import javax.vecmath.Vector2d;
+import javax.swing.event.EventListenerList;
 import java.awt.*;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 /**
@@ -18,9 +19,15 @@ public class Loom {
     public int numNails;
     public int radius;
 
-    public final List<Vector2d> nails = new ArrayList<>();
+    public final List<Point> nails = new ArrayList<>();
     public final List<LoomThread> selectedThreads = new ArrayList<>();
     public final List<LoomThread> allThreads = new ArrayList<>();
+
+    private final EventListenerList listeners = new EventListenerList();
+
+    public void addListener(LoomEventListener ear) {
+        listeners.add(LoomEventListener.class, ear);
+    }
 
     public Loom(int radius,int numNails) {
         this.radius = radius;
@@ -61,9 +68,9 @@ public class Loom {
         nails.clear();
         for(int i = 0; i< numNails; ++i) {
             double angle = i * Math.PI * 2 / numNails;
-            nails.add(new Vector2d(
-                    Math.sin(angle) * radius,
-                    Math.cos(angle) * radius
+            nails.add(new Point(
+                    (int)(Math.sin(angle) * radius),
+                    (int)(Math.cos(angle) * radius)
             ));
         }
     }
@@ -77,12 +84,12 @@ public class Loom {
         allThreads.clear();
 
         for (int i = 0; i < numNails; i++) {
-            Vector2d start = nails.get(i);
+            Point start = nails.get(i);
             double sx = start.x;
             double sy = start.y;
 
             for (int j = i + 1; j < numNails; j++) {
-                Vector2d end = nails.get(j);
+                Point end = nails.get(j);
                 double dx = end.x - sx;
                 double dy = end.y - sy;
 
@@ -107,6 +114,10 @@ public class Loom {
         if (bestThread == null) return;
         //potentialThreads.remove(bestThread);
         selectedThreads.add(bestThread);
+
+        for( var listener : listeners.getListeners(LoomEventListener.class) ) {
+            listener.threadAdded(bestThread);
+        }
     }
 
     public LoomThread findThreadClosestToThetaR(ThetaR target) {
@@ -154,11 +165,9 @@ public class Loom {
         return radius;
     }
 
-    public int getNailIndex(Vector2d point) {
-        Vector2d d = new Vector2d();
-        for(Vector2d n : nails) {
-            d.sub(n,point);
-            if(d.lengthSquared() < 1) {
+    public int getNailIndex(Point point) {
+        for(Point n : nails) {
+            if(n.distanceSq(point) < 1) {
                 return nails.indexOf(n);
             }
         }

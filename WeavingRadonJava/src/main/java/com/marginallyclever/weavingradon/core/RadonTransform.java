@@ -43,7 +43,6 @@ public class RadonTransform {
 
         // run in parallel because faster.
         IntStream.range(0, 180).parallel().forEach(theta -> {
-        //for(int theta = 0; theta < 180; theta++) {
             double c = cosTheta[theta];
             double s = sinTheta[theta];
             // three color channels + count of samples
@@ -266,16 +265,6 @@ public class RadonTransform {
     public void subtract(RadonTransform remove,int theta, int r) {
         double intensity = getIntensity(theta, r) - remove.getIntensity(theta, r);
         setIntensity(theta, r, intensity);
-    }
-
-    private Color subtractColor(Color c1, Color c2) {
-        float alphaFactor = c2.getAlpha() / 255.0f;
-
-        float r = Math.max(0, Math.min(255, c1.getRed() - c2.getRed() * alphaFactor));
-        float g = Math.max(0, Math.min(255, c1.getGreen() - c2.getGreen() * alphaFactor));
-        float b = Math.max(0, Math.min(255, c1.getBlue() - c2.getBlue() * alphaFactor));
-
-        return new Color((int) r, (int) g, (int) b);
     }
 
     public BufferedImage getHeatMap() {
