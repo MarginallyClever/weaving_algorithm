@@ -12,8 +12,8 @@ import java.awt.image.BufferedImage;
  * - paint A onto B to produce A', the new image.
  */
 public class LoomCanvas {
-    private final BufferedImage A; // Holds the complete drawing up to the current line
-    private final BufferedImage B; // Temporary buffer for the new line
+    private BufferedImage A; // Holds the complete drawing up to the current line
+    private BufferedImage B; // Temporary buffer for the new line
     int w2;
     int h2;
 
@@ -40,12 +40,14 @@ public class LoomCanvas {
         // Draw the new line on B
         gB.setColor(tc.col);
         gB.drawLine(tc.start.x+w2, tc.start.y+h2, tc.end.x+w2, tc.end.y+h2);
+        // Composite A onto B to produce A'
+        gB.drawImage(A, 0, 0, null); // Composite A onto B
         gB.dispose();
 
-        // Composite A onto B to produce A'
-        Graphics2D gA = A.createGraphics();
-        gA.drawImage(B, 0, 0, null);
-        gA.dispose();
+        // Swap A and B
+        BufferedImage tmp = A;
+        A = B;
+        B = tmp;
     }
 
     public BufferedImage getImage() {
