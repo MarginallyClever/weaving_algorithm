@@ -25,7 +25,9 @@ public class RadonTransform {
 
     private final BufferedImage heatMap;
     private final double [] graph;
+    private final double [] importanceMap;
     private final int radius;
+    private final int diameter;
 
     public RadonTransform(BufferedImage source) {
         if(source==null) {
@@ -35,13 +37,15 @@ public class RadonTransform {
             throw new IllegalArgumentException("image must be square, is "+source.getWidth()+"x"+source.getHeight());
         }
 
-        int diameter = source.getWidth();
-
+        diameter = source.getWidth();
         radius = diameter / 2;
+
+        importanceMap = createImportanceMap();
+
         heatMap = new BufferedImage(180, diameter, BufferedImage.TYPE_INT_ARGB);
         graph = new double[180 * diameter];
 
-        // run in parallel because faster.
+        // instead of `for(int theta = 0; theta < 180; theta++) {` run in parallel because faster.
         IntStream.range(0, 180).parallel().forEach(theta -> {
             double c = cosTheta[theta];
             double s = sinTheta[theta];
@@ -74,9 +78,10 @@ public class RadonTransform {
                     {
                         // get the color at this point
                         var v = new Color(source.getRGB(x0,y0));
-                        sr += v.getRed();
-                        sg += v.getGreen();
-                        sb += v.getBlue();
+                        var scale = getImportance(x0,y0);
+                        sr += scale * v.getRed();
+                        sg += scale * v.getGreen();
+                        sb += scale * v.getBlue();
                         count++;
                     }
                     if (x0 == x1 && y0 == y1) break;
@@ -92,8 +97,8 @@ public class RadonTransform {
                 }
 
                 if(count>0) {
-                    double i = (sr+sg+sb) / count;
-                    setIntensity(theta,r,i);
+                    double finalIntensity = (sr+sg+sb) / count;
+                    setIntensity(theta,r,finalIntensity);
                 }
             }
         });
@@ -108,7 +113,9 @@ public class RadonTransform {
      */
     public RadonTransform(int radius,LoomThread thread) {
         this.radius = radius;
-        int diameter = radius*2;
+        diameter = radius*2;
+
+        importanceMap = createImportanceMap();
 
         final double scale = 1.0 / radius;
         heatMap = new BufferedImage(180, diameter, BufferedImage.TYPE_INT_ARGB);
@@ -117,14 +124,53 @@ public class RadonTransform {
         double a = thread.col.getAlpha() / 256.0;
         double intensity = (thread.col.getRed() + thread.col.getGreen() + thread.col.getBlue()) * a/3.0;
 
-        /// instead of `for(int theta = 0; theta < 180; theta++) {` run in parallel because faster.
+        // instead of `for(int theta = 0; theta < 180; theta++) {` run in parallel because faster.
         IntStream.range(0, 180).parallel().forEach(theta -> {
             for (int r = -radius; r < radius; r++) {
-                double intersection = testIntersection(thread,theta,r) * scale;
-                double finalIntensity = intersection * intensity;
+                double result = testIntersection(thread,theta,r);/*
+                if(result!=0 && result<radius) {
+                    Vector2d intersection = findIntersection(thread, theta, r);
+                    assert intersection != null;
+                    int x = Math.max(diameter-1,Math.min(0,(int)(radius+intersection.x)));
+                    int y = Math.max(diameter-1,Math.min(0,(int)(radius+intersection.y)));
+
+                    double importance=0;
+                    try {
+                        importance = getImportance(x,y);
+                    } catch(ArrayIndexOutOfBoundsException e) {
+                        System.out.println("theta="+theta+" r="+r+" x="+x+" y="+y);
+                        throw e;
+                    }
+                    result *= importance;
+                }*/
+
+                double finalIntensity = result * scale * intensity;
                 setIntensity(theta, r, finalIntensity);
             }
         });
+    }
+
+    /**
+     * sinMap is a map of the importance of each pixel in the image.
+     * if the radius is 1 and the center is 0, then any given pixel is sin( (distance from center) / radius).
+     * @return a map of sin values.
+     */
+    public double [] createImportanceMap() {
+        double min = 0.5;
+        double range = min+1.0;
+
+        var map = new double[diameter * diameter];
+        for (int y = -radius; y < radius; y++) {
+            for (int x = -radius; x < radius; x++) {
+                double d = Math.sqrt(x * x + y * y);
+                d = Math.min(d, radius);
+                var result = (min+Math.cos(Math.PI * Math.abs(d) / diameter))/range;
+                result = Math.max(0,result);
+                result = Math.min(1,result);
+                map[(y+radius) * diameter + x + radius] = result;
+            }
+        }
+        return map;
     }
 
     /**
@@ -153,11 +199,13 @@ public class RadonTransform {
      */
     public double testIntersection(LoomThread thread, int theta, int r) {
         // Find the intersection of line theta/r and the thread.
-        // if the lines are parallel (same theta) and overlapping (same r) then the two lines are equal.
+        // if the lines are parallel (same theta)...
         if(Math.abs(thread.thetaR.theta-theta)<1e-6) {
             if(Math.abs(thread.thetaR.r-r)<1e-6) {
+                // and overlapping (same r) then the two lines are equal.
                 return radius;
             }
+            // otherwise they are parallel and never intersect.
             return 0;
         }
 
@@ -213,8 +261,11 @@ public class RadonTransform {
      * @param intensity 0...255
      */
     public void setIntensity(int theta, int r, double intensity) {
-        int diameter = radius*2;
         graph[theta * diameter + r + radius] = intensity;
+    }
+
+    private double getImportance(int x, int y) {
+        return importanceMap[y * diameter + x];
     }
 
     /**
