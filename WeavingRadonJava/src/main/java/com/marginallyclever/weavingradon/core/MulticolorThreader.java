@@ -1,6 +1,5 @@
 package com.marginallyclever.weavingradon.core;
 
-import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.util.ArrayList;
 import java.util.List;
@@ -32,9 +31,9 @@ public class MulticolorThreader extends RadonThreader {
     }
 
     /**
-     * get the next best thread, add it to the loom, and subtract it from the current radon image.
+     * Get the next best thread, add it to the loom, and subtract it from the current radon image.
      *
-     * @return
+     * @return true if a thread was added, false if no threads are left.
      */
     @Override
     public boolean addNextBestThread() {

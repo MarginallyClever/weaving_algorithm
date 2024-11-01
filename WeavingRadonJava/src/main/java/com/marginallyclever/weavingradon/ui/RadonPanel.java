@@ -10,15 +10,16 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 
 /**
- * RadonPanel listens for mouse events.  when the cursor is over the image it will tell the Viewport
- * to display the theta and r values at that point.
+ * <p>RadonPanel displays the {@link RadonTransform}.</p>
+ * <p>It also listens for mouse events.  when the cursor is over the image it will tell the {@link ViewportLayout}
+ * to display the {@link ThetaR} value at that point.</p>
  */
 public class RadonPanel extends JPanel {
     private RadonTransform radonTransform;
     private final RayIllustrator rayIllustrator;
     private final ThetaR selectedThetaR = new ThetaR(0,0,0);
     private boolean showClickPoint = true;
-    private JToolBar toolbar = new JToolBar();
+    private final JToolBar toolbar = new JToolBar();
 
     public RadonPanel(RayIllustrator rayIllustrator) {
         super(new BorderLayout());
@@ -100,7 +101,7 @@ public class RadonPanel extends JPanel {
     @Override
     protected void paintComponent(Graphics g) {
         super.paintComponent(g);
-        if(radonTransform ==null) return;
+        if(radonTransform == null) return;
         Image graph = radonTransform.getHeatMap();
         if(graph==null) return;
 

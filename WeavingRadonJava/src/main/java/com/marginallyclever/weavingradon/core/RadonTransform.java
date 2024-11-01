@@ -93,7 +93,7 @@ public class RadonTransform {
                 }
 
                 if(count>0) {
-                    double i = (sr+sg+sb)/count;
+                    double i = (sr+sg+sb) / count;
                     setIntensity(theta,r,i);
                 }
             }

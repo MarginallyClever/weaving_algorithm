@@ -196,13 +196,14 @@ public class LoomPanel extends JPanel implements RayIllustrator {
 
     @Override
     protected void paintComponent(Graphics g) {
-        //super.paintComponent(g);
-        Dimension dim = toolbar.getPreferredSize();
+        super.paintComponent(g);
 
         Graphics2D g2 = (Graphics2D) g.create();
         RenderHintHelper.setRenderHints(g2);
         g2.setStroke(new BasicStroke(1f));
 
+        // adjust downward so we don't paint over the toolbar
+        Dimension dim = toolbar.getPreferredSize();
         g2.translate(0, dim.height);
 
         if(image==null) {
@@ -232,6 +233,11 @@ public class LoomPanel extends JPanel implements RayIllustrator {
         g2.translate(0,-dim.height);
     }
 
+    /**
+     * Draw all the threads in the loom.  This is a forward pass that draws the threads in the order they were added.
+     * As threads are added it takes longer and longer to draw.
+     * @param g2 the graphics context
+     */
     private void drawAllTheads(Graphics2D g2) {
         // draw in reverse order so the most important thread (first in list) is on the top of the stack.
         ListIterator<LoomThread> iterator = loom.selectedThreads.listIterator(slider.getValue());
@@ -241,6 +247,11 @@ public class LoomPanel extends JPanel implements RayIllustrator {
         }
     }
 
+    /**
+     * Draw a single thread.
+     * @param g2 the graphics context
+     * @param thread the thread to draw
+     */
     private void drawOneThread(Graphics2D g2, LoomThread thread) {
         g2.setColor(thread.col);
         g2.drawLine((int)thread.start.x,
