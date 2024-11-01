@@ -42,6 +42,8 @@ public class WeavingApp {
     private final RadonPanel singleRadon;
     private final MonochromaticThreader radonThreaderB = new MonochromaticThreader(new Color(255,255,255));
 
+    private String lastPath = null;
+
     public static void main(String[] args) {
         SwingUtilities.invokeLater(WeavingApp::new);
     }
@@ -84,8 +86,7 @@ public class WeavingApp {
         // create a file chooser for images
         String [] list = ImageIO.getReaderFileSuffixes();
         Arrays.sort(list);
-        String name = String.join(", ", list);
-        name = "Image files (" + name + ")";
+        String name = "Image files (" + String.join(", ", list) + ")";
         fileChooser = new PersistentJFileChooser();
         fileChooser.setFileFilter(new FileNameExtensionFilter(name, ImageIO.getReaderFileSuffixes()));
 
@@ -136,7 +137,7 @@ public class WeavingApp {
         oneView.add(singleLine, BorderLayout.CENTER);
         windows.add(oneView);
 
-        DockingPanel oneRadon = new DockingPanel("eb1ea92b-fc66-4c54-a5a9-3e4f8203bd5d", "Line R");
+        DockingPanel oneRadon = new DockingPanel("eb1ea92b-fc66-4c54-a5a9-3e4f8203bd5d", "One line Radon");
         oneRadon.add(singleRadon, BorderLayout.CENTER);
         windows.add(oneRadon);
     }
@@ -164,30 +165,48 @@ public class WeavingApp {
         }
     }
 
-    public void openFile(ActionEvent actionEvent) {
+    /**
+     * @return false if the selection is cancelled.
+     */
+    public boolean selectFile() {
         // show the file chooser dialog
-        if(fileChooser.showOpenDialog(frame)== JFileChooser. APPROVE_OPTION) {
-            String path = fileChooser.getSelectedFile().getAbsolutePath();
-            System.out.println("Open file: "+path);
-            try {
-                BufferedImage square = makeSquare(ImageIO.read(new File(path)));
-                loom.createNailsAndThreads();
-                // build a radon transform for every thread, based on the color filter for that threader.
-                myThreader.setLoomAndImage(loom,square);
-                myThreader.maskRadonTransformByAllThreads();
-
-                loomPanel.setLoomAndImage(loom,square);
-                radonPanel.setRadonTransform(myThreader.getRadonTransform());
-
-                BufferedImage grey = makeGreyscale(square);
-                radonThreaderB.setLoomAndImage(loom,grey);
-                singleLine.setLoomAndImage(loom,grey);
-                singleRadon.setRadonTransform(radonThreaderB.getRadonTransform());
-            } catch (Exception e) {
-                System.out.println("Failed to load file.");
-                e.printStackTrace();
-            }
+        if (fileChooser.showOpenDialog(frame) == JFileChooser.APPROVE_OPTION) {
+            lastPath = fileChooser.getSelectedFile().getAbsolutePath();
+            return true;
         }
+        return false;
+    }
+
+    /**
+     * Load an image from the last path.
+     * @return true if successful.
+     */
+    public boolean loadImage(String filename) {
+        System.out.println("Open file: "+filename);
+        try {
+            BufferedImage square = makeSquare(ImageIO.read(new File(filename)));
+            loom.createNailsAndThreads();
+            // build a radon transform for every thread, based on the color filter for that threader.
+            myThreader.setLoomAndImage(loom,square);
+            myThreader.maskRadonTransformByAllThreads();
+
+            loomPanel.setLoomAndImage(loom,square);
+            radonPanel.setRadonTransform(myThreader.getRadonTransform());
+
+            BufferedImage grey = makeGreyscale(square);
+            radonThreaderB.setLoomAndImage(loom,grey);
+            singleLine.setLoomAndImage(loom,grey);
+            singleRadon.setRadonTransform(radonThreaderB.getRadonTransform());
+            return true;
+        } catch (Exception e) {
+            System.out.println("Failed to load file.");
+            e.printStackTrace();
+            return false;
+        }
+    }
+
+    public String getLastPath() {
+        return lastPath;
     }
 
     // make square greyscale
