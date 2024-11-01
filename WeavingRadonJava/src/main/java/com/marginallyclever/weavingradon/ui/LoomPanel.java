@@ -12,6 +12,7 @@ import java.awt.image.BufferedImage;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.IOException;
+import java.util.Iterator;
 import java.util.ListIterator;
 
 public class LoomPanel extends JPanel implements RayIllustrator, LoomEventListener {
@@ -34,6 +35,7 @@ public class LoomPanel extends JPanel implements RayIllustrator, LoomEventListen
     private JToggleButton togglePlay = null;
 
     private LoomCanvas canvas = new LoomCanvas(1,1);
+    private boolean skipRecalculate = false;
 
     public LoomPanel() {
         super(new BorderLayout());
@@ -49,6 +51,22 @@ public class LoomPanel extends JPanel implements RayIllustrator, LoomEventListen
         });
 
         toolbar.setFloatable(false);
+
+        // add a button with no text filled with backgroundColor.  when clicked it opens a color chooser to set the backgroundColor.
+        JButton colorButton = new JButton();
+        colorButton.setBackground(backgroundColor);
+        colorButton.addActionListener(e -> {
+            Color newColor = JColorChooser.showDialog(this, "Choose Background Color", backgroundColor);
+            if(newColor!=null) {
+                backgroundColor = newColor;
+                colorButton.setBackground(backgroundColor);
+                repaint();
+            }
+        });
+        colorButton.setMinimumSize(new Dimension(20,20));
+        colorButton.setPreferredSize(new Dimension(20,20));
+        colorButton.setText("  ");
+        toolbar.add(colorButton);
 
         addToggle(toolbar,"Image", e->{
             showImage = !showImage;
@@ -88,6 +106,7 @@ public class LoomPanel extends JPanel implements RayIllustrator, LoomEventListen
 
         slider = new JSlider(0, 0, 0);
         slider.addChangeListener(e -> {
+            resizeLoomCanvas();
             repaint();
         });
         toolbar.add(slider);
@@ -103,8 +122,6 @@ public class LoomPanel extends JPanel implements RayIllustrator, LoomEventListen
         addComponentListener(new ComponentAdapter() {
             @Override
             public void componentResized(ComponentEvent e) {
-                int newWidth = getWidth();
-                int newHeight = getHeight();
                 resizeLoomCanvas();
                 repaint();
             }
@@ -112,15 +129,26 @@ public class LoomPanel extends JPanel implements RayIllustrator, LoomEventListen
     }
 
     private void resizeLoomCanvas() {
-        if(loom==null) return;
-        canvas = new LoomCanvas(loom.radius*2, loom.radius*2);
+        if (!skipRecalculate) return;
+        if (loom == null) return;
+        canvas = new LoomCanvas(loom.radius * 2, loom.radius * 2);
+
+        // draw in reverse order so the most important thread (first in list) is on the top of the stack.
+        Iterator<LoomThread> iterator = loom.selectedThreads.iterator();
+        while (iterator.hasNext()) {
+            LoomThread tc = iterator.next();
+            canvas.addLineOnTop(tc);
+        }
+    }
+    /*
+    private void drawAllThreadsToCanvas() {
         // draw in reverse order so the most important thread (first in list) is on the top of the stack.
         ListIterator<LoomThread> iterator = loom.selectedThreads.listIterator(slider.getValue());
         while (iterator.hasPrevious()) {
             LoomThread tc = iterator.previous();
             canvas.addLineOnTop(tc);
         }
-    }
+    }*/
 
     private void export(ActionEvent actionEvent) {
         JFileChooser fileChooser = getJFileChooser();
@@ -189,8 +217,10 @@ public class LoomPanel extends JPanel implements RayIllustrator, LoomEventListen
         if(!radonThreader.addNextBestThread()) return false;
         radonPanel.setRadonTransform(radonThreader.getRadonTransform());
         showBest=false;
+        skipRecalculate = true;
         slider.setMaximum(loom.selectedThreads.size());
         slider.setValue(loom.selectedThreads.size());
+        skipRecalculate = false;
         return true;
     }
 
@@ -226,19 +256,16 @@ public class LoomPanel extends JPanel implements RayIllustrator, LoomEventListen
         Graphics2D g2 = (Graphics2D) g.create();
         RenderHintHelper.setRenderHints(g2);
 
+        g2.setColor(backgroundColor);
+        g2.fillRect(0, 0, getWidth(), getHeight());
+
         // adjust downward so we don't paint over the toolbar
         Dimension dim = toolbar.getPreferredSize();
         g2.translate(0, dim.height);
 
-        if(image==null) {
-            // all black
-            g2.clearRect(0, 0, getWidth(), getHeight());
-        } else if(showImage) {
+        if(image!=null && showImage) {
             // Draw the image at (0, 0) with the size of the panel
             g2.drawImage(image, 0, 0, this);
-        } else {
-            g2.setColor(backgroundColor);
-            g2.fillRect(0, 0, image.getWidth(), image.getHeight());
         }
 
         if(loom!=null) {
@@ -259,9 +286,9 @@ public class LoomPanel extends JPanel implements RayIllustrator, LoomEventListen
         if(slider.getValue()==slider.getMaximum()) {
             g2.drawImage(canvas.getImage(), 0, 0, this);
         } else {
-            g2.translate(loom.radius+2, loom.radius+2);
+            g2.translate(loom.radius, loom.radius);
             drawAllThreadsReverseOrder(g2);
-            g2.translate(-loom.radius-2, -loom.radius-2);
+            g2.translate(-loom.radius, -loom.radius);
         }
     }
 
@@ -275,7 +302,6 @@ public class LoomPanel extends JPanel implements RayIllustrator, LoomEventListen
         while (iterator.hasPrevious()) {
             drawOneThread(g2, iterator.previous());
         }
-
     }
 
     /**
@@ -294,12 +320,12 @@ public class LoomPanel extends JPanel implements RayIllustrator, LoomEventListen
         // fill the ovals
         g2.setColor(Color.RED);
         for (Point nail : loom.nails) {
-            g2.fillOval(nail.x, nail.y, NAIL_RADIUS, NAIL_RADIUS);
+            g2.fillOval(nail.x-r, nail.y-r, NAIL_RADIUS, NAIL_RADIUS);
         }
         // draw the borders
         g2.setColor(Color.WHITE);
         for (Point nail : loom.nails) {
-            g2.drawOval(nail.x, nail.y, NAIL_RADIUS, NAIL_RADIUS);
+            g2.drawOval(nail.x-r, nail.y-r, NAIL_RADIUS, NAIL_RADIUS);
         }
         g2.translate(-loom.radius, -loom.radius);
     }
