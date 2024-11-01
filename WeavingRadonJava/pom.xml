@@ -7,23 +7,112 @@
     <groupId>com.marginallyclever</groupId>
     <artifactId>WeavingRadon</artifactId>
     <version>1.0</version>
+    <description>Weaving thread on a loom to approximate an image.</description>
+
+
+    <issueManagement>
+        <url>https://github.com/MarginallyClever/weaving_algorithm/issues</url>
+        <system>GitHub Issues</system>
+    </issueManagement>
+
+    <licenses>
+        <license>
+            <name>GPLv2</name>
+            <url>https://opensource.org/licenses/GPL-2.0</url>
+            <distribution>repo</distribution>
+        </license>
+    </licenses>
+
+    <scm>
+        <url>https://github.com/MarginallyClever/weaving_algorithm</url>
+        <connection>scm:git:git@github.com:MarginallyClever/Makelangelo-software.git</connection>
+    </scm>
+
+    <organization>
+        <name>Marginally Clever Robots, Limited.</name>
+        <url>https://www.marginallyclever.com/</url>
+    </organization>
+
+    <developers>
+        <developer>
+            <id>i-make-robots</id>
+            <name>Dan Royer</name>
+            <email>dan@marginallyclever.com</email>
+            <url>https://github.com/i-make-robots</url>
+            <roles>
+                <role>architect</role>
+                <role>developer</role>
+            </roles>
+            <timezone>-8</timezone>
+        </developer>
+    </developers>
 
     <properties>
-        <maven.compiler.source>22</maven.compiler.source>
-        <maven.compiler.target>22</maven.compiler.target>
+        <minimum.java.version>21</minimum.java.version>
+        <maven.compiler.source>${minimum.java.version}</maven.compiler.source>
+        <maven.compiler.target>${minimum.java.version}</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
 
     <build>
         <plugins>
+            <!-- Compiler Plugin -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.8.1</version>
                 <configuration>
-                    <source>22</source>
-                    <target>22</target>
-                    <compilerArgs>--enable-preview</compilerArgs>
+                    <source>${minimum.java.version}</source>
+                    <target>${minimum.java.version}</target>
+                    <release>${minimum.java.version}</release>
+                    <encoding>UTF-8</encoding>
                 </configuration>
+            </plugin>
+
+            <!-- JAR Plugin -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-jar-plugin</artifactId>
+                <version>3.2.0</version>
+                <configuration>
+                    <archive>
+                        <manifest>
+                            <addDefaultImplementationEntries>true</addDefaultImplementationEntries>
+                            <mainClass>com.marginallyclever.weavingradon.WeavingApp</mainClass>
+                            <addClasspath>true</addClasspath>
+                        </manifest>
+                    </archive>
+                </configuration>
+            </plugin>
+
+            <!-- Assembly Plugin -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-assembly-plugin</artifactId>
+                <version>3.3.0</version>
+                <configuration>
+                    <archive>
+                        <manifest>
+                            <mainClass>com.marginallyclever.weavingradon.WeavingApp</mainClass>
+                            <addClasspath>true</addClasspath>
+                        </manifest>
+                        <manifestEntries>
+                            <Implementation-Version>${project.version}</Implementation-Version>
+                        </manifestEntries>
+                    </archive>
+                    <descriptorRefs>
+                        <descriptorRef>jar-with-dependencies</descriptorRef>
+                    </descriptorRefs>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>make-assembly</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>single</goal>
+                        </goals>
+                    </execution>
+                </executions>
             </plugin>
         </plugins>
     </build>
