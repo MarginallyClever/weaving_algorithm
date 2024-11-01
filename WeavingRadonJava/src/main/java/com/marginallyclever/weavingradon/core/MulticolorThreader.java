@@ -39,7 +39,7 @@ public class MulticolorThreader extends RadonThreader {
     public boolean addNextBestThread() {
         if (loom.allThreads.isEmpty()) return false;
         ThreaderChoice choice = getBestThreaderChoice();
-        System.out.println("best thetaR: " + choice.bestThetaR.intensity);// choice.threader.getColor() + " @ "+choice.bestThetaR);
+        System.out.println(loom.selectedThreads.size()+ " " + choice.bestThetaR.intensity);// choice.threader.getColor() + " @ "+choice.bestThetaR);
         if(choice.bestThetaR.intensity==0) return false;
         LoomThread bestThread = loom.findThreadClosestToThetaR(choice.bestThetaR);
 
