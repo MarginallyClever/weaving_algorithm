@@ -9,6 +9,6 @@ public class RenderHintHelper {
         g2.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BICUBIC);
         g2.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
         g2.setRenderingHint(RenderingHints.KEY_STROKE_CONTROL, RenderingHints.VALUE_STROKE_NORMALIZE);
-        g2.setStroke(new BasicStroke(1f));
+        g2.setStroke(new BasicStroke(1.2f));
     }
 }
