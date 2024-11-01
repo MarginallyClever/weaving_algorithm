@@ -6,7 +6,7 @@
 
     <groupId>com.marginallyclever</groupId>
     <artifactId>WeavingRadon</artifactId>
-    <version>1.0</version>
+    <version>1.1</version>
     <description>Weaving thread on a loom to approximate an image.</description>
 
 
